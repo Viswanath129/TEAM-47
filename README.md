@@ -1,84 +1,61 @@
-# 🎓 ClassPulse AI: Real-Time Lecture Analysis & Quiz Generator
+# 🎓 ClassPulse AI
 
-![Project Status](https://img.shields.io/badge/Status-Active-success)
-![Education](https://img.shields.io/badge/Focus-Education_Tech-orange)
-![AI Powered](https://img.shields.io/badge/AI-Gemini_Flash-blue)
+## 📖 Project Overview
 
-## 📖 Overview
+**ClassPulse AI** is a cutting-edge educational technology solution designed to optimize the lecture feedback loop. 
 
-**ClassPulse AI** is an intelligent classroom assistant designed to bridge the gap between teaching and student comprehension. 
+By leveraging **Edge AI (Local Large Language Models)**, the application transcribes and analyzes classroom audio in real-time without relying on external servers for intelligence. This ensures zero-latency performance and absolute data privacy. The system follows a **Hybrid Architecture**, processing data locally for immediate feedback while syncing structured insights to a cloud backend for long-term analytics.
 
-In a traditional classroom, it can be difficult for teachers to gauge if students are actively listening and understanding the material in real-time. This project solves that problem by:
-1.  **Transcribing** the teacher's lecture live into text.
-2.  **Analyzing** the lecture content using Artificial Intelligence.
-3.  **Generating** an instant, 10-question quiz based on that specific session.
+---
 
-This allows teachers to conduct immediate assessments at the end of a class to verify student attentiveness and identify knowledge gaps.
+## 📉 The Problem Statement
+
+Traditional classroom environments face significant technological and pedagogical challenges:
+
+* **⚠️ Connectivity Dependency:** Most AI tools require constant, high-speed internet, making them unreliable in remote or infrastructure-poor educational institutions.
+* **🔒 Data Privacy Concerns:** Institutions are hesitant to stream sensitive classroom audio to third-party APIs for processing.
+* **📉 Delayed Feedback Loops:** Instructors often lack immediate insight into student comprehension, realizing gaps in knowledge only after exams.
+* **🐌 Latency:** Cloud-based transcription often introduces lags that disrupt the flow of real-time interaction.
+
+---
 
 ## ✨ Key Features
 
-### 🎙️ For the Classroom
-* **Live Lecture Transcription:** Captures the teacher's speech in real-time using the Web Speech API.
-* **Multi-Language Support:** Works for various languages (English, Hindi, Telugu, etc.), making it inclusive for different regions.
-* **Distraction-Free Interface:** Clean UI to display the lecture notes as they are spoken.
+### 🛡️ Edge Intelligence (Offline Mode)
+* **Zero-Latency Transcription:** Utilizes local speech-to-text engines to transcribe lectures instantly.
+* **On-Device Analysis:** Runs quantized LLMs (e.g., Llama 3, Mistral) locally via Ollama to generate summaries and quizzes without internet access.
+* **Data Sovereignty:** Audio data is processed entirely on the client machine; it never leaves the device.
 
-### 🧠 AI-Powered Assessment (Gemini Integrated)
-* **Instant Quiz Generation:** With one click, the system analyzes the entire lecture and creates a **10-question multiple-choice quiz**.
-* **Comprehension Scoring:** Automatically checks answers and provides a score to measure understanding.
-* **Executive Summaries:** Generates a concise summary of the lecture and "Action Items" (homework or key takeaways).
+### ☁️ Cloud Synchronization (Online Mode)
+* **Seamless Sync:** Automatically pushes structured data (lecture notes, quiz scores) to **Supabase/Firebase** when connectivity is restored.
+* **Role-Based Access:** Distinct portals for **Instructors** (analytics, management) and **Students** (quizzes, history).
+* **Long-Term Analytics:** Visualizes comprehension trends over the semester.
 
-### 🛠 Technical Highlights
-* **Voice-to-Text:** Continuous speech recognition with auto-restart logic to ensure no part of the lecture is missed.
-* **Local Storage:** Saves lecture history locally in the browser, allowing students/teachers to review past classes.
-* **Dark Mode:** Classroom-friendly dark mode to reduce eye strain during presentations.
-
----
-
-## 🚀 How It Works in Class
-
-1.  **Start Class:** The teacher (or student) opens the app and clicks the **Microphone** button.
-2.  **Teach:** The app listens to the lecture and types it out on the screen in real-time.
-3.  **Analyze:** When the topic is finished, click the **Magic Wand (AI Insights)** button.
-4.  **Quiz:** The AI generates a quiz. The teacher can project these questions to the class or have students take them individually to see who was listening!
+### 🎨 User Experience
+* **Adaptive UI:** Dark-mode enabled, responsive interface built with Tailwind CSS.
+* **Multilingual Support:** Native support for English and regional languages (Hindi, Telugu).
+* **Automated Assessment:** Instantly generates and grades 10-question multiple-choice quizzes.
 
 ---
 
-## 💻 Tech Stack
+## 🛠️ Tech Stack
 
-* **Frontend:** HTML5, JavaScript (Vanilla)
-* **Styling:** Tailwind CSS
-* **AI Engine:** Google Gemini 2.5 Flash Preview (via API)
-* **Speech Engine:** Web Speech API (`webkitSpeechRecognition`)
+| Component | Technology Used | Description |
+| :--- | :--- | :--- |
+| **Frontend** | HTML, CSS, JS | High-performance UI library like tailwindcss and anime.js . |
+| **Styling** | Tailwind CSS | Utility-first CSS framework for responsive design. |
+| **Local AI** | Ollama | Runtime for running LLMs (Llama 3, Mistral) locally. |
+| **Speech Engine** | Web Speech API / Whisper | Real-time audio capture and transcription. |
+| **Backend (BaaS)** | Supabase / Firebase | Authentication, Real-time Database, and Storage. |
+| **Version Control** | Git & GitHub | Source code management. |
 
 ---
 
 ## ⚙️ Setup & Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone [https://github.com/your-username/classpulse-ai.git](https://github.com/your-username/classpulse-ai.git)
-    ```
+Follow these steps to deploy the application in a local development environment.
 
-2.  **Add API Key:**
-    * Open `index.html`.
-    * Find the `const API_KEY` variable (around line 360).
-    * Insert your Google Gemini API key.
-    ```javascript
-    const API_KEY = "YOUR_OWN_GEMINI_KEY";
-    ```
-
-3.  **Run:**
-    * Simply open `index.html` in Chrome or Edge browser.
-    * **Note:** Microphone access is required.
-
-
-## 🤝 Contribution
-
-This project is open for enhancements! We welcome ideas such as:
-* Exporting quiz results to PDF.
-* Student login systems.
-* Cloud database integration.
-
-## 📝 License
-
-This project is licensed under the MIT License.
+### Prerequisites
+* **html, css, js** (latest version)
+* **Ollama** (Installed and running)
+* **Git**
