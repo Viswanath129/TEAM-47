@@ -232,101 +232,185 @@
                 document.body.removeChild(element);
             };
 
-            const generateLongNotes = (text) => {
-                const words = text.split(' ').filter(w => w.length > 4);
-                const topic = words[0] ? words[0].charAt(0).toUpperCase() + words[0].slice(1) : "The Subject";
-                const secondary = words[Math.floor(words.length / 3)] || "key factors";
-                const tertiary = words[Math.floor(words.length / 2)] || "underlying principles";
+            // --- HELPER FUNCTION FOR PROCESSING TEXT ---
+            const processText = (text) => {
+                // Better sentence splitting handling common abbreviations
+                const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+                // Extract words
+                const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+                const stopWords = new Set(['the', 'and', 'that', 'have', 'for', 'not', 'with', 'you', 'this', 'but', 'his', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us', 'are', 'is', 'was', 'were', 'be', 'been', 'being']);
                 
+                const wordCounts = {};
+                words.forEach(w => {
+                    if (w.length > 3 && !stopWords.has(w)) {
+                        wordCounts[w] = (wordCounts[w] || 0) + 1;
+                    }
+                });
+                
+                const keywords = Object.keys(wordCounts).sort((a,b) => wordCounts[b] - wordCounts[a]);
+                
+                return { sentences, keywords, wordCounts };
+            };
+
+            const generateLongNotes = (text) => {
+                const { sentences, keywords } = processText(text);
+                const title = keywords.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' & ') || "Session Notes";
+                
+                // Helper to create filler academic text but mixed with real keywords
                 const fill = (focus) => {
-                    const phrases = [
-                        `In the context of ${focus}, extensive research suggests a correlation with broader systemic issues.`,
-                        `One must consider the historical precedents that have shaped the evolution of ${focus} in modern discourse.`,
-                        `The theoretical framework surrounding ${focus} provides a robust basis for further inquiry and analysis.`,
-                        `Experts argue that minimizing the impact of outliers on ${focus} is essential for accurate modeling.`,
-                        `Furthermore, the integration of ${focus} into daily practice yields significant efficiency improvements.`
-                    ];
-                    return phrases.sort(() => 0.5 - Math.random()).slice(0, 3).join(' ');
+                   // Generic filler to extend length if input is short, but we will rely more on repetition of real concepts
+                   return ` This aspect of ${focus} requires careful consideration of the underlying data.`;
                 };
 
-                return `COMPREHENSIVE STUDY NOTES: ${topic.toUpperCase()}
-Date: ${new Date().toLocaleDateString()}
-Language: ${language}
+                let content = `TOPIC: ${title.toUpperCase()}\nDate: ${new Date().toLocaleDateString()}\nLanguage: ${language}\n\n`;
+                
+                // 1. Introduction
+                content += `1. INTRODUCTION\n`;
+                content += `The following notes provide a comprehensive analysis of the recorded session. The primary focus revolves around ${keywords[0] || 'the main topic'}, with significant emphasis on ${keywords[1] || 'related concepts'}. \n\n`;
+                // Try to use actual first sentences if available
+                if (sentences.length > 0) {
+                     content += `Summary of Opening: "${sentences.slice(0, 2).join(' ')}"\n\n`;
+                }
 
-1. EXECUTIVE SUMMARY
-The input text provides a foundational overview of "${topic}". It highlights the critical interplay between ${secondary} and ${tertiary}. This document expands upon these initial concepts to provide a thorough understanding of the subject matter, aiming to bridge the gap between theoretical knowledge and practical application.
+                // 2. Key Terminology
+                content += `2. KEY TERMINOLOGY AND CONCEPTS\n`;
+                content += `Based on frequency analysis, the following core concepts were identified:\n`;
+                keywords.slice(0, 5).forEach(k => {
+                    // Find a sentence that uses this keyword
+                    const contextSentence = sentences.find(s => s.toLowerCase().includes(k))?.trim() || 'Referenced in the discussion.';
+                    content += `- ${k.toUpperCase()}: Critical to understanding the context. Context: "${contextSentence}"\n`;
+                });
+                content += `\n`;
 
-2. HISTORICAL CONTEXT & EVOLUTION
-Understanding ${topic} requires a deep dive into its origins. ${fill(topic)} Initially, the concept was viewed through a narrow lens, but recent developments involving "${secondary}" have broadened the scope significantly.
-   - Early Phase: Characterized by limited data and tentative hypotheses.
-   - Developmental Phase: Saw the introduction of rigorous testing methods.
-   - Modern Era: Defined by the integration of digital tools and global standardization.
+                // 3. Detailed Discussion
+                content += `3. DETAILED DISCUSSION\n`;
+                content += `The session progressed through several logical stages. \n`;
+                
+                // Chunk sentences to simulate paragraphs based on actual content
+                const chunks = [];
+                // Create chunks of 3 sentences
+                for (let i = 0; i < sentences.length; i += 3) {
+                    const chunkText = sentences.slice(i, i + 3).join(' ');
+                    if (chunkText) chunks.push(chunkText);
+                }
+                
+                if (chunks.length > 0) {
+                    chunks.forEach((chunk, i) => {
+                         const keyForSection = keywords[i % keywords.length] || 'the subject';
+                         content += `\n   3.${i+1} Analysis Part ${i+1}:\n   "${chunk}"\n   Analysis: This segment suggests a deeper correlation with ${keyForSection}. The speaker highlights the nuance here.${fill(keyForSection)}\n`;
+                    });
+                } else {
+                    // Fallback for very short text to ensure length
+                    content += `   The text discusses: "${text}". To expand on this, one must consider the broader implications of ${keywords[0]} in a modern context. Literature often cites ${keywords[0]} as a pivoting point for ${keywords[1] || 'change'}.\n`;
+                }
+                content += `\n`;
 
-3. CORE METHODOLOGIES AND THEORETICAL FRAMEWORKS
-The text implicitly relies on standard analytical frameworks. ${fill('theoretical models')}
+                // 4. Critical Analysis (Simulated based on keywords)
+                content += `4. CRITICAL ANALYSIS & IMPLICATIONS\n`;
+                content += `Evaluating the input regarding "${keywords[0] || 'Topic'}":\n`;
+                content += `   a. Strengths: The argument for ${keywords[0]} presents a robust framework for ${keywords[2] || 'development'}.\n`;
+                content += `   b. Potential Weaknesses: However, relying solely on ${keywords[0]} might overlook ${keywords[3] || 'external variables'}.\n`;
+                content += `   c. Future Outlook: Trends indicate that ${keywords[0]} will continue to shape the landscape of ${keywords[1] || 'the field'}.\n\n`;
 
-   3.1 The Role of ${secondary}
-   ${secondary} acts as a catalyst in this system. ${fill(secondary)} Observations from the provided text suggest that without this component, the integrity of the entire system might be compromised.
+                // 5. Conclusion
+                content += `5. CONCLUSION\n`;
+                const lastSentence = sentences[sentences.length - 1] || '';
+                content += `To summarize, the session on ${title} provided valuable insights. Closing thought: "${lastSentence}" Moving forward, attention should be directed towards ${keywords[0]} and its practical applications.\n`;
+                
+                // Add Appendix to ensure "More than 1 page" feel if text was short
+                if (content.length < 1500) {
+                    content += `\n\n[APPENDIX: SUPPLEMENTARY CONTEXT]\n`;
+                    content += `(Auto-generated context to supplement brief input)\n`;
+                    content += `The study of ${keywords[0] || 'this topic'} has historically been contentious. Scholars argue that ${keywords[1] || 'variables'} play a larger role than initially thought. When we examine the data regarding ${keywords[2] || 'factors'}, we see a clear pattern emerging. This document serves as a preliminary record of these findings.\n`;
+                    content += `Further reading on ${keywords[3] || 'related subjects'} is recommended to fully grasp the complexities discussed herein. The integration of ${keywords[0]} into daily practice yields significant efficiency improvements, a point that cannot be overstated.`;
+                }
 
-   3.2 Analyzing ${tertiary}
-   Similarly, "${tertiary}" offers a unique perspective. ${fill(tertiary)} It is often argued that mastery of this element is what separates novices from experts in the field.
-
-4. DETAILED ANALYSIS OF KEY ARGUMENTS
-The primary argument presented revolves around the efficacy of ${topic}.
-"Key takeaways from the user input suggest a strong focus on specific terminologies and their definitions."
-${fill('this argument')} 
-   a. Structural Integrity: How ${topic} maintains coherence under pressure.
-   b. Dynamic Adaptability: The ability of ${secondary} to change in response to external stimuli.
-   c. Long-term Sustainability: Ensuring that ${tertiary} remains viable for future generations.
-
-5. PRACTICAL APPLICATIONS AND IMPLICATIONS
-Moving beyond theory, the real-world applications are vast. ${fill('practical application')}
-   - Industry: used to optimize workflows.
-   - Education: serves as a primary teaching tool for advanced students.
-   - Research: provides a baseline for experimental groups.
-
-6. CRITICAL EVALUATION AND LIMITATIONS
-Despite the clear benefits, one must acknowledge potential drawbacks. ${fill('limitation analysis')} The text provided does not explicitly cover these, but a holistic view requires their consideration. Issues such as scalability of "${topic}" and the resource intensity of "${secondary}" are paramount.
-
-7. CONCLUSION AND FUTURE TRAJECTORIES
-In conclusion, the study of "${topic}" is multifaceted. ${fill('conclusion')} The synthesis of input data regarding ${secondary} and ${tertiary} paints a promising picture for the future. Continued research is recommended to fully unlock the potential described herein.`;
+                return content;
             };
 
             const generateDynamicQuiz = (text) => {
-                const words = text.split(' ').filter(w => w.length > 4);
-                const topic = words[0] ? words[0].charAt(0).toUpperCase() + words[0].slice(1) : "Topic";
-                const keys = words.slice(0, 10);
-                
-                const createQuestion = (idx) => {
-                    const types = [
-                        { q: `What is the primary significance of "${topic}"?`, a: "It is the central theme.", o: ["It is a minor detail.", "It contradicts the main point.", "It is unrelated."] },
-                        { q: `In the context of the discussion, what does "${keys[idx % keys.length] || 'this concept'}" imply?`, a: "A crucial structural element.", o: ["A redundant feature.", "A historical error.", "A type of machinery."] },
-                        { q: `True or False: The text suggests that "${topic}" is obsolete.`, a: "False", o: ["True"] },
-                        { q: `Which factor is cited as influencing "${keys[(idx+1) % keys.length] || 'the outcome'}"?`, a: "External environmental variables.", o: ["The phases of the moon.", "Ancient texts.", "Random chance."] },
-                        { q: `Critically, the author argues for the importance of:`, a: `${keys[(idx+2) % keys.length] || 'Integration'}`, o: ["Isolation", "Stagnation", "Regression"] },
-                        { q: `The relationship between "${topic}" and "${keys[(idx+3) % keys.length] || 'Practice'}" is described as:`, a: "Symbiotic and evolving.", o: ["Antagonistic.", "Non-existent.", "Purely theoretical."] },
-                        { q: `What is a potential limitation mentioned regarding "${keys[(idx+4) % keys.length] || 'Usage'}"?`, a: "Resource intensity.", o: ["Lack of color.", "Too much popularity.", "Ease of use."] },
-                        { q: `How does the text categorize the evolution of "${topic}"?`, a: "As a multi-phase progression.", o: ["As a sudden event.", "As a decline.", "As a circular logic."] },
-                        { q: `True or False: Practical application is considered secondary to theory.`, a: "False", o: ["True"] },
-                        { q: `The conclusion draws attention to the future of:`, a: `${keys[(idx+5) % keys.length] || 'Research'}`, o: ["The past.", "Nothing.", "Fiction."] }
-                    ];
-                    
-                    const template = types[idx % types.length];
-                    const options = [template.a, ...template.o].sort(() => Math.random() - 0.5);
-                    const correctIdx = options.indexOf(template.a);
-                    
-                    return {
-                        id: idx + 1,
-                        question: template.q,
-                        options: options,
-                        correct: correctIdx
-                    };
-                };
-
+                const { sentences, keywords } = processText(text);
                 const quiz = [];
-                for (let i = 0; i < 10; i++) {
-                    quiz.push(createQuestion(i));
+                
+                // Fallback data if text is too short
+                const safeKeywords = keywords.length >= 4 ? keywords : ['Concept A', 'Concept B', 'Concept C', 'Concept D'];
+                const safeSentences = sentences.length >= 4 ? sentences : [text, text, text, text];
+
+                // --- 10 Unique Questions Generation ---
+                
+                // Q1: Main Topic Identification
+                const q1Options = [safeKeywords[0], safeKeywords[1], "Unrelated Topic", "General Science"].sort(() => Math.random() - 0.5);
+                quiz.push({
+                    id: 1,
+                    question: `What appears to be the primary subject of this text?`,
+                    options: q1Options,
+                    correct: q1Options.indexOf(safeKeywords[0])
+                });
+
+                // Q2: True/False based on actual text
+                const trueSentence = safeSentences[0];
+                quiz.push({
+                    id: 2,
+                    question: `True or False: The text states: "${trueSentence.substring(0, 60)}..."`,
+                    options: ["True", "False"],
+                    correct: 0
+                });
+
+                // Q3: Fill in the blank
+                const sentenceForBlank = safeSentences[Math.floor(safeSentences.length/2)] || safeSentences[0];
+                const wordToRemove = safeKeywords[0];
+                // Replace case-insensitive
+                const regex = new RegExp(`\\b${wordToRemove}\\b`, 'gi');
+                const blankSentence = sentenceForBlank.replace(regex, "_______");
+                
+                const q3Options = [wordToRemove, "something else", "nothing", "everything"].sort(() => Math.random() - 0.5);
+                quiz.push({
+                    id: 3,
+                    question: `Complete the sentence: "${blankSentence.substring(0, 100)}..."`,
+                    options: q3Options,
+                    correct: q3Options.indexOf(wordToRemove)
+                });
+
+                // Q4: Contextual Association
+                const q4Options = ["The main argument", "A counter-point", "Irrelevant data", "A historical date"].sort(() => Math.random() - 0.5);
+                quiz.push({
+                    id: 4,
+                    question: `In this context, "${safeKeywords[1]}" is likely associated with:`,
+                    options: q4Options,
+                    correct: q4Options.indexOf("The main argument") // Mock logic since we don't have real semantic understanding
+                });
+
+                // Q5: Negative Fact (Distractor)
+                const distractor = "Flying Elephants";
+                const q5Options = [safeKeywords[0], safeKeywords[1], distractor, safeKeywords[2]].sort(() => Math.random() - 0.5);
+                quiz.push({
+                    id: 5,
+                    question: `Which of the following was NOT explicitly emphasized as a main keyword?`,
+                    options: q5Options,
+                    correct: q5Options.indexOf(distractor)
+                });
+
+                // Q6: Specific Detail (Using a middle sentence)
+                const detailSentence = safeSentences[Math.min(2, safeSentences.length-1)];
+                quiz.push({
+                    id: 6,
+                    question: `The text mentions: "${detailSentence.substring(0, 30)}...". This implies:`,
+                    options: ["It is a key point", "It is false", "It is irrelevant", "It is a joke"],
+                    correct: 0
+                });
+
+                // Q7-Q10: Procedural generation based on remaining keywords
+                for(let i=7; i<=10; i++) {
+                     const key = safeKeywords[(i) % safeKeywords.length] || safeKeywords[0];
+                     const qOptions = [`It is significant to the topic.`, `It is completely wrong.`, `It was never mentioned.`, `It is a color.`].sort(() => Math.random() - 0.5);
+                     quiz.push({
+                        id: i,
+                        question: `Regarding the term "${key}", what can be inferred from the text?`,
+                        options: qOptions,
+                        correct: qOptions.indexOf(`It is significant to the topic.`)
+                     });
                 }
+
                 return quiz;
             };
 
