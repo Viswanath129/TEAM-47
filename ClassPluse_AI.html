@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProScribe Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter for UI, JetBrains Mono for code/stats, Merriweather for reading -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 
+                            500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81',
+                        },
+                        dark: {
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'glow': '0 0 15px rgba(99, 102, 241, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base Polish */
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Editor Styles */
+        #transcriptPanel:focus { outline: none; }
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            cursor: text;
+        }
+
+        /* Animations */
+        @keyframes waveform { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+        .waveform-bar {
+            width: 3px; background-color: currentColor; border-radius: 99px;
+            animation: waveform 0.4s ease-in-out infinite;
+        }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Print Override */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; height: auto; overflow: visible; }
+            #main-layout { height: auto; overflow: visible; }
+            #editor-wrapper { height: auto; overflow: visible; box-shadow: none; padding: 0; margin: 0; }
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex bg-gray-50 dark:bg-dark-950 text-slate-800 dark:text-slate-200 overflow-hidden transition-colors duration-300">
+
+    <!-- COMPACT SIDEBAR -->
+    <nav class="w-16 bg-white dark:bg-dark-900 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-6 z-40 shrink-0 no-print shadow-sm">
+        <!-- Logo -->
+        <div class="mb-8 w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+            <i class="fas fa-wave-square text-lg"></i>
+        </div>
+
+        <!-- Tools -->
+        <div class="flex flex-col gap-3 w-full px-2 items-center">
+            <button id="recordBtn" onclick="toggleRecognition()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-brand-600 transition-all duration-200 relative group" title="Record (Alt+R)">
+                <i class="fas fa-microphone"></i>
+                <!-- Tooltip -->
+                <span class="absolute left-14 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Record</span>
+            </button>
+            
+            <button onclick="toggleLibrary()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-all duration-200 relative group" title="Library">
+                <i class="fas fa-folder-open"></i>
+                <span class="absolute left-14 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Library</span>
+            </button>
+
+            <button onclick="toggleAnalysisPanel()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-purple-600 transition-all duration-200 relative group" title="AI Insights">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span class="absolute left-14 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">AI Insights</span>
+            </button>
+        </div>
+
+        <div class="flex-grow"></div>
+
+        <!-- Bottom Tools -->
+        <div class="flex flex-col gap-3 w-full px-2 items-center mb-2">
+            <button onclick="downloadDoc()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 relative group">
+                <i class="fas fa-file-export"></i>
+                <span class="absolute left-14 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Export</span>
+            </button>
+            <button onclick="toggleTheme()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 relative group">
+                <i id="themeIcon" class="fas fa-moon"></i>
+            </button>
+             <button onclick="openSettings()" class="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 relative group">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- LIBRARY DRAWER -->
+    <aside id="libraryDrawer" class="w-72 bg-gray-50 dark:bg-dark-950 border-r border-gray-200 dark:border-gray-800 flex flex-col -ml-72 transition-all duration-300 z-30 shadow-2xl no-print absolute md:relative h-full">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-dark-900 flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-xs tracking-wider text-slate-500 uppercase">Transcript Library</h2>
+                <button onclick="toggleLibrary()" class="md:hidden text-slate-400"><i class="fas fa-times"></i></button>
+            </div>
+            <!-- Search -->
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                <input type="text" id="librarySearch" placeholder="Search transcripts..." class="w-full bg-gray-100 dark:bg-gray-800 text-sm pl-8 pr-3 py-2 rounded-lg border-none focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+            </div>
+        </div>
+        
+        <div class="flex-grow overflow-y-auto custom-scrollbar p-3 space-y-2" id="fileList">
+            <!-- File items injected here -->
+        </div>
+
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-dark-900">
+            <button onclick="createNewDocument()" class="w-full py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-brand-600 dark:hover:bg-brand-600 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-plus"></i> New Transcript
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN WORKSPACE -->
+    <main id="main-layout" class="flex-grow flex flex-col relative h-full overflow-hidden bg-white dark:bg-dark-950">
+        
+        <!-- Top Toolbar -->
+        <header class="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 bg-white/90 dark:bg-dark-900/90 backdrop-blur-sm z-20 shrink-0 no-print">
+            <!-- Title Input -->
+            <div class="flex flex-col justify-center flex-grow max-w-2xl">
+                <input type="text" id="docTitle" value="Untitled Session" class="bg-transparent border-none text-lg font-bold text-slate-800 dark:text-white tracking-tight focus:ring-0 w-full p-0 truncate placeholder-slate-400" onchange="updateDocTitle(this.value)">
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                    <span id="lastSaved">Unsaved</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span id="wordCountHeader">0 words</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-3">
+                 <!-- Live Visualizer -->
+                 <div id="visualizerContainer" class="hidden h-8 w-24 items-center justify-center gap-0.5 mr-2">
+                    <div class="waveform-bar text-brand-500" style="animation-duration: 0.5s"></div>
+                    <div class="waveform-bar text-brand-400" style="animation-duration: 0.3s"></div>
+                    <div class="waveform-bar text-brand-600" style="animation-duration: 0.6s"></div>
+                    <div class="waveform-bar text-brand-500" style="animation-duration: 0.4s"></div>
+                    <div class="waveform-bar text-brand-400" style="animation-duration: 0.2s"></div>
+                 </div>
+
+                 <!-- Status Badge (Restored) -->
+                 <div id="recordingStatus" class="hidden flex items-center gap-2 px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full text-xs font-medium border border-red-100 dark:border-red-900/30 animate-pulse">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    Recording
+                </div>
+
+                <!-- Rich Text Actions -->
+                <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700">
+                    <button onclick="execCmd('bold')" class="w-8 h-8 rounded hover:bg-white dark:hover:bg-gray-700 text-slate-500 dark:text-slate-400 transition-colors" title="Bold"><i class="fas fa-bold text-xs"></i></button>
+                    <button onclick="execCmd('italic')" class="w-8 h-8 rounded hover:bg-white dark:hover:bg-gray-700 text-slate-500 dark:text-slate-400 transition-colors" title="Italic"><i class="fas fa-italic text-xs"></i></button>
+                    <div class="w-[1px] h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                    <button onclick="readAloud()" class="w-8 h-8 rounded hover:bg-white dark:hover:bg-gray-700 text-brand-600 dark:text-brand-400 transition-colors" title="Read Aloud"><i class="fas fa-volume-high text-xs"></i></button>
+                </div>
+
+                <div class="h-8 w-[1px] bg-gray-200 dark:bg-gray-800"></div>
+
+                <!-- Lang Selector (Compact) -->
+                <div class="relative">
+                    <select id="languageSelect" class="bg-gray-50 dark:bg-gray-800 text-xs font-medium text-slate-600 dark:text-slate-300 border border-gray-200 dark:border-gray-700 rounded-lg pl-2 pr-6 py-2 focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors">
+                        <option value="en-US">EN (US)</option>
+                        <option value="en-GB">EN (UK)</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="te-IN">Telugu</option>
+                        <option value="ja-JP">Japanese</option>
+                        <option value="zh-CN">Chinese</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-2 top-3 text-[8px] text-slate-400 pointer-events-none"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Editor Surface -->
+        <div id="editor-wrapper" class="flex-grow flex relative overflow-hidden bg-gray-50/50 dark:bg-dark-950">
+            
+            <!-- Document Paper -->
+            <div id="main-scroller" class="flex-grow h-full overflow-y-auto custom-scrollbar p-4 md:p-8 focus:outline-none scroll-smooth flex justify-center">
+                <div class="w-full max-w-4xl bg-white dark:bg-dark-900 min-h-[80vh] shadow-soft dark:shadow-none border border-gray-200 dark:border-gray-800 rounded-xl p-12 md:p-16 transition-colors duration-300">
+                    <div id="transcriptPanel" class="w-full h-full text-lg leading-8 text-slate-700 dark:text-slate-300 outline-none font-serif" contenteditable="true" spellcheck="false" placeholder="Start speaking..."></div>
+                    
+                    <!-- Interim Text Placeholder -->
+                    <div id="interimDisplay" class="text-slate-400 dark:text-slate-600 italic mt-1 font-serif"></div>
+                </div>
+            </div>
+
+            <!-- AI Inspector (Slide-over) -->
+            <aside id="learningPanel" class="w-[450px] bg-white dark:bg-dark-900 border-l border-gray-200 dark:border-gray-800 transform translate-x-full transition-transform duration-300 absolute right-0 top-0 bottom-0 shadow-2xl z-30 flex flex-col no-print">
+                <!-- Header -->
+                <div class="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 shrink-0 bg-gray-50/50 dark:bg-dark-900">
+                    <div class="flex items-center gap-2 text-brand-600 dark:text-brand-400 font-bold text-sm uppercase tracking-wide">
+                        <i class="fas fa-microchip"></i> AI Analysis
+                    </div>
+                    <button onclick="toggleAnalysisPanel()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-slate-500 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-8">
+                    <!-- State: Empty -->
+                    <div id="analysisEmpty" class="flex flex-col items-center justify-center h-64 text-slate-400 text-center">
+                        <div class="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-5 animate-pulse">
+                            <i class="fas fa-wand-magic-sparkles text-3xl text-brand-300 dark:text-brand-700"></i>
+                        </div>
+                        <h3 class="text-slate-800 dark:text-white font-semibold mb-1">Unlock Insights</h3>
+                        <p class="text-sm text-slate-500">Transcribe audio, then generate<br>summaries and action items.</p>
+                        <button onclick="generateAnalysis()" class="mt-6 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg shadow-lg shadow-brand-500/20 transition-all hover:scale-105">
+                            Run Analysis
+                        </button>
+                    </div>
+
+                    <!-- State: Loading -->
+                    <div id="loadingAnalysis" class="hidden flex flex-col items-center justify-center h-64">
+                        <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide font-bold">Thinking...</p>
+                    </div>
+
+                    <!-- State: Results -->
+                    <div id="analysisContent" class="hidden space-y-8 fade-in">
+                        
+                        <!-- Summary -->
+                        <div class="relative">
+                            <div class="absolute -left-3 top-0 bottom-0 w-1 bg-brand-500 rounded-full"></div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Executive Summary</h4>
+                            <p id="summaryText" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+                        </div>
+
+                        <!-- Action Items -->
+                        <div class="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-5 border border-indigo-100 dark:border-indigo-900/30">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-3 flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i> Action Items
+                            </h4>
+                            <ul id="actionItemsList" class="space-y-3"></ul>
+                        </div>
+
+                        <!-- Keywords -->
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Topics Detected</h4>
+                            <div id="keywordsList" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Quiz -->
+                        <div class="pt-6 border-t border-gray-200 dark:border-gray-800">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Comprehension Quiz</h4>
+                                <span id="quizScore" class="text-xs font-bold text-brand-600 dark:text-brand-400 hidden">Score: -/-</span>
+                            </div>
+                            <form id="quizForm" class="space-y-6"></form>
+                            <button onclick="submitQuiz()" id="submitQuizBtn" class="w-full mt-6 py-3 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+                                Check Answers
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Footer -->
+        <footer class="h-8 bg-white dark:bg-dark-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 shrink-0 text-[10px] font-medium text-slate-400 no-print z-20">
+            <div class="flex items-center gap-4">
+                <span id="systemStatus" class="flex items-center gap-1.5 text-emerald-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    System Ready
+                </span>
+                <div class="h-3 w-[1px] bg-gray-200 dark:bg-gray-700"></div>
+                <div class="flex items-center gap-2">
+                    <span>Confidence:</span>
+                    <div class="w-16 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div id="confidenceBar" class="h-full bg-emerald-400 w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-4 font-mono">
+                <span id="shortcutsHint" class="hidden md:inline text-slate-300 dark:text-slate-600">Alt+R to Record</span>
+                <span id="readingTime">0m read</span>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white dark:bg-dark-900 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-100 dark:border-gray-800 transform scale-95 transition-all" id="settingsContent">
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-6">Preferences</h2>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Read Aloud Voice</label>
+                    <select id="voiceSelect" class="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-lg px-4 py-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-brand-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Editor Font Size</label>
+                    <div class="flex gap-2">
+                        <button onclick="setFontSize('text-base')" class="flex-1 py-2 bg-gray-100 dark:bg-gray-800 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-700">Small</button>
+                        <button onclick="setFontSize('text-lg')" class="flex-1 py-2 bg-brand-100 dark:bg-brand-900 text-brand-700 rounded text-xs font-bold border border-brand-200">Medium</button>
+                        <button onclick="setFontSize('text-xl')" class="flex-1 py-2 bg-gray-100 dark:bg-gray-800 rounded text-xs hover:bg-gray-200 dark:hover:bg-gray-700">Large</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button onclick="toggleModal('settingsModal', false)" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg text-sm">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-2xl text-xs font-bold tracking-wide opacity-0 pointer-events-none transition-all duration-300 transform -translate-y-4 z-[60] flex items-center gap-3">
+        <i class="fas fa-info-circle"></i> <span id="toastMsg">Notification</span>
+    </div>
+
+    <script>
+        // --- CONSTANTS ---
+        const API_KEY = "AIzaSyCBAp6NqsATLa8N_6oJOGCRBqDyr6fLAPg"; 
+        
+        // --- STATE ---
+        let recognition;
+        let isListening = false;
+        let shouldBeListening = false; // For auto-restart logic
+        let sessions = [];
+        let currentSessionId = null;
+        let quizData = [];
+        
+        // Audio Viz
+        let audioCtx, analyser, dataArray, canvasCtx, vizRAF;
+
+        // --- DOM ---
+        let els = {}; 
+
+        // --- INIT ---
+        window.onload = () => {
+            initTheme();
+            
+            // Initialize DOM references safely after load
+            els = {
+                editor: document.getElementById('transcriptPanel'),
+                interim: document.getElementById('interimDisplay'),
+                title: document.getElementById('docTitle'),
+                fileList: document.getElementById('fileList'),
+                librarySearch: document.getElementById('librarySearch'),
+                vizContainer: document.getElementById('visualizerContainer'),
+                status: document.getElementById('systemStatus'),
+                recordingStatus: document.getElementById('recordingStatus'),
+                lastSaved: document.getElementById('lastSaved'),
+                lang: document.getElementById('languageSelect'),
+                drawer: document.getElementById('libraryDrawer'),
+                inspector: document.getElementById('learningPanel')
+            };
+
+            if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                if(els.editor) els.editor.innerHTML = "<p class='text-red-500'>Browser not supported. Please use Chrome/Edge.</p>";
+                return;
+            }
+            initRecognition();
+            loadLibrary();
+            initSearch();
+            setupShortcuts();
+            
+            // Populate voices later when they load
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoices;
+            }
+        };
+
+        function populateVoices() {
+            const voices = speechSynthesis.getVoices();
+            const select = document.getElementById('voiceSelect');
+            if(select) select.innerHTML = voices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+        }
+
+        // --- SPEECH RECOGNITION ENGINE (Auto-Restart) ---
+        function initRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                updateRecordingState(true);
+                initAudioViz();
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                stopAudioViz();
+                
+                // Auto-Restart Logic
+                if (shouldBeListening) {
+                    // Browser stopped it, but user didn't. Restart.
+                    console.log("Auto-restarting recognition...");
+                    try { recognition.start(); } catch(e) {}
+                } else {
+                    updateRecordingState(false);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                if(event.error === 'not-allowed') {
+                    showToast("Microphone Blocked");
+                    shouldBeListening = false;
+                    updateRecordingState(false);
+                }
+            };
+
+            recognition.onresult = async (event) => {
+                let final = '';
+                let interim = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const res = event.results[i];
+                    if (res.isFinal) {
+                        final += res[0].transcript + ' ';
+                        updateConfidence(res[0].confidence);
+                    } else {
+                        interim += res[0].transcript;
+                    }
+                }
+
+                if (final) {
+                    await handleFinalText(final);
+                }
+                if(els.interim) els.interim.innerText = interim;
+            };
+        }
+
+        function toggleRecognition() {
+            if (shouldBeListening) {
+                shouldBeListening = false;
+                recognition.stop();
+            } else {
+                shouldBeListening = true;
+                if(els.lang) recognition.lang = els.lang.value;
+                recognition.start();
+            }
+        }
+
+        function updateRecordingState(active) {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('recordingStatus');
+            const viz = document.getElementById('visualizerContainer'); // Direct fetch to satisfy user requirements and safety
+            
+            if (active) {
+                if (btn) {
+                    btn.classList.add('bg-brand-600', 'text-white', 'animate-pulse');
+                    btn.classList.remove('text-slate-500');
+                }
+                if (status) status.classList.remove('hidden');
+                if (viz) {
+                    viz.classList.remove('hidden');
+                    viz.classList.add('flex');
+                }
+            } else {
+                if (btn) {
+                    btn.classList.remove('bg-brand-600', 'text-white', 'animate-pulse');
+                    btn.classList.add('text-slate-500');
+                }
+                if (status) status.classList.add('hidden');
+                if (viz) {
+                    viz.classList.add('hidden');
+                    viz.classList.remove('flex');
+                }
+                updateConfidence(0);
+            }
+        }
+
+        // --- TEXT PROCESSING & AI TRANSLATION ---
+        async function handleFinalText(text) {
+            // Basic Formatting (Capitalization)
+            text = text.trim();
+            text = text.charAt(0).toUpperCase() + text.slice(1);
+            
+            // Insert Text
+            const span = document.createElement('span');
+            span.innerText = text + " ";
+            if(els.editor) els.editor.appendChild(span);
+            
+            // Auto-Scroll
+            const scroller = document.getElementById('main-scroller');
+            if(scroller) scroller.scrollTop = scroller.scrollHeight;
+
+            // Trigger Save
+            saveSession();
+
+            // Try Translate (Silent fail is ok)
+            try {
+                const translated = await callGeminiTranslate(text);
+                if (translated && translated !== text) {
+                    span.innerText = translated + " ";
+                    saveSession();
+                }
+            } catch(e) { console.warn("Translation skipped", e); }
+            
+            updateStats();
+        }
+
+        // --- GEMINI API CALLS ---
+        async function callGeminiTranslate(text) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            const prompt = `Translate to English (if not already). Correct grammar. Return ONLY clean text. Input: "${text}"`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.warn("Translation API Error:", data.error);
+                    return null;
+                }
+
+                return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            } catch (e) {
+                console.warn("Translation Network Error", e);
+                return null;
+            }
+        }
+
+        async function generateAnalysis() {
+            const text = els.editor.innerText.replace("Start speaking...", "").trim();
+            if (text.length < 20) return showToast("Not enough text to analyze");
+
+            // UI Loading
+            document.getElementById('analysisEmpty').classList.add('hidden');
+            document.getElementById('loadingAnalysis').classList.remove('hidden');
+            document.getElementById('analysisContent').classList.add('hidden');
+
+            try {
+                const data = await callGeminiAnalysis(text);
+                if (!data) throw new Error("No data returned");
+                renderAnalysis(data);
+            } catch (e) {
+                console.error("Analysis Error:", e);
+                showToast("Analysis Failed: " + e.message);
+                document.getElementById('loadingAnalysis').classList.add('hidden');
+                document.getElementById('analysisEmpty').classList.remove('hidden');
+            }
+        }
+
+        async function callGeminiAnalysis(text) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+            const prompt = `
+                Analyze this transcript. Return valid JSON ONLY.
+                Generate exactly 10 multiple-choice questions for the quiz.
+                
+                JSON Structure:
+                {
+                    "summary": "Concise executive summary (2 sentences).",
+                    "action_items": ["Action 1", "Action 2 (Owner)"],
+                    "keywords": ["Topic1", "Topic2"],
+                    "quiz": [
+                        {"question": "Q1?", "options": ["A","B","C","D"], "correctIndex": 0}
+                        // ... exactly 10 questions
+                    ]
+                }
+                Transcript: "${text.substring(0, 12000)}"
+            `;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+            });
+            
+            const data = await response.json();
+            
+            // Handle API Errors gracefully
+            if (data.error) {
+                throw new Error(data.error.message || "API Error");
+            }
+
+            let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (!rawText) throw new Error("No content generated");
+
+            // Sanitize Markdown if present (Critical Fix)
+            // Removes ```json and ``` wrapping
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            return JSON.parse(rawText);
+        }
+
+        function renderAnalysis(data) {
+            document.getElementById('loadingAnalysis').classList.add('hidden');
+            document.getElementById('analysisContent').classList.remove('hidden');
+
+            document.getElementById('summaryText').innerText = data.summary || "No summary available.";
+            
+            // Action Items
+            const actionList = document.getElementById('actionItemsList');
+            if (data.action_items && data.action_items.length > 0) {
+                actionList.innerHTML = data.action_items.map(item => `
+                    <li class="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                        <input type="checkbox" class="mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                        <span>${item}</span>
+                    </li>
+                `).join('');
+            } else {
+                actionList.innerHTML = "<li class='text-xs text-slate-400 italic'>No specific action items detected.</li>";
+            }
+
+            // Keywords
+            const kwList = document.getElementById('keywordsList');
+            if (data.keywords && data.keywords.length > 0) {
+                kwList.innerHTML = data.keywords.map(k => `
+                    <span class="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 rounded-md border border-slate-200 dark:border-slate-700">#${k}</span>
+                `).join('');
+            } else {
+                 kwList.innerHTML = "";
+            }
+
+            // Quiz
+            quizData = data.quiz || [];
+            const form = document.getElementById('quizForm');
+            if (quizData.length > 0) {
+                form.innerHTML = quizData.map((q, idx) => `
+                    <div class="border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0">
+                        <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">${idx+1}. ${q.question}</p>
+                        <div class="space-y-1">
+                            ${q.options.map((opt, oIdx) => `
+                                <label class="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                    <input type="radio" name="q${idx}" value="${oIdx}" class="text-brand-600 focus:ring-brand-500 bg-gray-100 border-gray-300">
+                                    <span class="text-xs text-slate-600 dark:text-slate-400">${opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                form.innerHTML = "<p class='text-xs text-slate-500'>No quiz generated.</p>";
+            }
+            
+            // Store analysis in session
+            const sess = sessions.find(s => s.id === currentSessionId);
+            if(sess) {
+                sess.analysis = data;
+                saveToStorage();
+            }
+        }
+
+        function submitQuiz() {
+            let score = 0;
+            const formData = new FormData(document.getElementById('quizForm'));
+            
+            quizData.forEach((q, idx) => {
+                const selected = formData.get(`q${idx}`);
+                const inputs = document.getElementsByName(`q${idx}`);
+                inputs.forEach(inp => {
+                    inp.disabled = true;
+                    const label = inp.parentElement;
+                    if (parseInt(inp.value) === q.correctIndex) {
+                        label.classList.add('bg-emerald-50', 'dark:bg-emerald-900/20');
+                        label.querySelector('span').classList.add('text-emerald-600', 'font-bold');
+                    } else if (parseInt(selected) === parseInt(inp.value) && parseInt(inp.value) !== q.correctIndex) {
+                        label.classList.add('bg-red-50', 'dark:bg-red-900/20');
+                    }
+                });
+                if (parseInt(selected) === q.correctIndex) score++;
+            });
+
+            const scoreEl = document.getElementById('quizScore');
+            scoreEl.innerText = `Score: ${score}/${quizData.length}`;
+            scoreEl.classList.remove('hidden');
+            document.getElementById('submitQuizBtn').classList.add('hidden');
+        }
+
+        // --- LIBRARY & SESSION MANAGEMENT ---
+        function loadLibrary() {
+            const stored = localStorage.getItem('proscribe_data');
+            if (stored) {
+                try {
+                    sessions = JSON.parse(stored);
+                    sessions = sessions.filter(s => s && s.id);
+                } catch(e) { sessions = []; }
+            }
+            
+            if (sessions.length === 0) {
+                createNewDocument();
+            } else {
+                loadSession(sessions[0].id);
+            }
+            renderFileList();
+        }
+
+        function createNewDocument() {
+            const id = Date.now();
+            const newDoc = {
+                id: id,
+                title: "Untitled Transcript",
+                content: "",
+                date: id,
+                analysis: null
+            };
+            sessions.unshift(newDoc);
+            saveToStorage();
+            loadSession(id);
+            // If mobile, close drawer
+            if (window.innerWidth < 768) toggleLibrary();
+        }
+
+        function loadSession(id) {
+            currentSessionId = id;
+            const sess = sessions.find(s => s.id === id);
+            if (!sess) return;
+
+            if(els.title) els.title.value = sess.title;
+            if(els.editor) els.editor.innerHTML = sess.content || "";
+            
+            // Load Analysis if exists
+            if (sess.analysis) {
+                renderAnalysis(sess.analysis);
+            } else {
+                resetAnalysisUI();
+            }
+            
+            renderFileList();
+            updateStats();
+        }
+
+        function saveSession() {
+            const sess = sessions.find(s => s.id === currentSessionId);
+            if (!sess) return;
+
+            if(els.editor) sess.content = els.editor.innerHTML;
+            if(els.title) sess.title = els.title.value;
+            sess.date = Date.now();
+
+            // Auto-Title Logic
+            const rawText = els.editor ? els.editor.innerText.trim() : "";
+            if (sess.title === "Untitled Transcript" && rawText.length > 15) {
+                const words = rawText.split(' ').slice(0, 5).join(' ');
+                sess.title = words + "...";
+                if(els.title) els.title.value = sess.title;
+            }
+
+            saveToStorage();
+            renderFileList(); // Update list order/titles
+            
+            // UI Feedback
+            if(els.lastSaved) {
+                els.lastSaved.innerText = "Saved just now";
+                setTimeout(() => els.lastSaved.innerText = "Saved", 2000);
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('proscribe_data', JSON.stringify(sessions));
+        }
+
+        function renderFileList(filterText = "") {
+            if(!els.fileList) return;
+            els.fileList.innerHTML = sessions
+                .filter(s => s.title.toLowerCase().includes(filterText.toLowerCase()))
+                .map(s => `
+                    <div onclick="loadSession(${s.id})" class="p-3 rounded-lg cursor-pointer transition-all ${s.id === currentSessionId ? 'bg-white dark:bg-slate-800 shadow-sm border-l-4 border-brand-500' : 'hover:bg-gray-100 dark:hover:bg-slate-800 border-l-4 border-transparent'}">
+                        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200 truncate mb-1">${s.title}</h4>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400">
+                            <span>${new Date(s.date).toLocaleDateString()}</span>
+                            ${s.id !== currentSessionId ? `<button onclick="deleteSession(event, ${s.id})" class="hover:text-red-500 px-1"><i class="fas fa-trash"></i></button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function deleteSession(e, id) {
+            e.stopPropagation();
+            if (confirm("Delete this transcript?")) {
+                sessions = sessions.filter(s => s.id !== id);
+                saveToStorage();
+                if (sessions.length === 0) createNewDocument();
+                else if (currentSessionId === id) loadSession(sessions[0].id);
+                else renderFileList();
+            }
+        }
+        
+        function updateDocTitle(val) {
+            saveSession();
+        }
+        
+        function initSearch() {
+            if(els.librarySearch) {
+                els.librarySearch.addEventListener('input', (e) => {
+                    renderFileList(e.target.value);
+                });
+            }
+        }
+
+        // --- UTILITIES ---
+        function updateConfidence(score) {
+            const bar = document.getElementById('confidenceBar');
+            if(!bar) return;
+            const percent = Math.round(score * 100);
+            bar.style.width = `${percent}%`;
+            
+            if (percent > 80) bar.className = "h-full bg-emerald-400 w-0 transition-all duration-500";
+            else if (percent > 50) bar.className = "h-full bg-amber-400 w-0 transition-all duration-500";
+            else bar.className = "h-full bg-red-400 w-0 transition-all duration-500";
+        }
+
+        function updateStats() {
+            if(!els.editor) return;
+            const text = els.editor.innerText.trim();
+            const wordCount = text ? text.split(/\s+/).length : 0;
+            
+            const wchEl = document.getElementById('wordCountHeader');
+            if(wchEl) wchEl.innerText = `${wordCount} words`;
+            
+            const rtEl = document.getElementById('readingTime');
+            if(rtEl) rtEl.innerText = `${Math.ceil(wordCount/200)}m read`;
+        }
+        
+        // --- RICH TEXT ---
+        function execCmd(cmd) {
+            document.execCommand(cmd, false, null);
+            if(els.editor) els.editor.focus();
+        }
+
+        function readAloud() {
+            if(!els.editor) return;
+            const text = els.editor.innerText.trim();
+            if(!text) return showToast("Nothing to read");
+            
+            if(window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                return;
+            }
+            
+            const u = new SpeechSynthesisUtterance(text);
+            const voiceName = document.getElementById('voiceSelect').value;
+            const voice = speechSynthesis.getVoices().find(v => v.name === voiceName);
+            if(voice) u.voice = voice;
+            window.speechSynthesis.speak(u);
+        }
+
+        function downloadDoc() {
+             if(!els.editor) return;
+             const text = els.editor.innerText;
+             const blob = new Blob([text], {type: 'text/plain'});
+             const url = URL.createObjectURL(blob);
+             const a = document.createElement('a');
+             a.href = url;
+             a.download = `${(els.title && els.title.value) || 'transcript'}.txt`;
+             a.click();
+        }
+
+        // --- UI TOGGLES ---
+        function toggleLibrary() {
+            const d = els.drawer;
+            if(!d) return;
+            if(d.classList.contains('-ml-72')) d.classList.remove('-ml-72');
+            else d.classList.add('-ml-72');
+        }
+        
+        function toggleAnalysisPanel() {
+            const p = els.inspector;
+            if(!p) return;
+            if(p.classList.contains('translate-x-full')) p.classList.remove('translate-x-full');
+            else p.classList.add('translate-x-full');
+        }
+        
+        function resetAnalysisUI() {
+            document.getElementById('analysisContent').classList.add('hidden');
+            document.getElementById('analysisEmpty').classList.remove('hidden');
+            document.getElementById('loadingAnalysis').classList.add('hidden');
+        }
+
+        function toggleModal(id, show) {
+            const m = document.getElementById(id);
+            if(!m) return;
+            if(show) { m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0'),10); }
+            else { m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),200); }
+        }
+        
+        function openSettings() { toggleModal('settingsModal', true); }
+        
+        function setFontSize(cls) {
+            if(els.editor) els.editor.className = `w-full h-full leading-8 text-slate-700 dark:text-slate-300 outline-none font-serif ${cls}`;
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeIcon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        function initTheme() {
+            if(localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fas fa-sun';
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            if(!t) return;
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.remove('opacity-0', '-translate-y-4');
+            setTimeout(() => t.classList.add('opacity-0', '-translate-y-4'), 3000);
+        }
+
+        function setupShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (e.altKey && e.code === 'KeyR') {
+                    e.preventDefault();
+                    toggleRecognition();
+                }
+            });
+        }
+        
+        // --- Audio Viz ---
+        async function initAudioViz() {
+            if(!navigator.mediaDevices) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                const src = audioCtx.createMediaStreamSource(stream);
+                src.connect(analyser);
+                // Don't connect to destination to avoid feedback loop!
+                
+                analyser.fftSize = 32;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+            } catch(e) { console.error("Audio Viz Error", e); }
+        }
+        
+        function stopAudioViz() {
+            if(audioCtx) audioCtx.close();
+        }
+
+        // Event Listeners
+        // Need to add listener after window load to ensure element exists
+        // Done inside window.onload logic implicitly via updateStats calls in recognition/save
+        if(document.getElementById('transcriptPanel')) {
+             document.getElementById('transcriptPanel').addEventListener('input', () => { updateStats(); saveSession(); });
+        }
+
+    </script>
+</body>
+</html>
