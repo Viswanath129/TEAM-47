@@ -16,12 +16,21 @@
                         mono: ['JetBrains Mono', 'monospace'],
                         serif: ['Merriweather', 'serif'],
                     },
+                    colors: {
+                        brand: {
+                            dark: '#0f172a',
+                            primary: '#6366f1',
+                            secondary: '#8b5cf6',
+                            accent: '#38bdf8',
+                        }
+                    },
                     animation: {
-                        'blob': 'blob 7s infinite',
-                        'float': 'float 3s ease-in-out infinite',
+                        'blob': 'blob 10s infinite alternate',
+                        'float': 'float 4s ease-in-out infinite',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'fade-in': 'fadeIn 0.5s ease-out forwards',
-                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                        'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                     },
                     keyframes: {
                         blob: {
@@ -41,7 +50,15 @@
                         slideUp: {
                             '0%': { opacity: '0', transform: 'translateY(20px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        scaleIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
                         }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(99, 102, 241, 0.5)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
                     }
                 }
             }
@@ -56,33 +73,45 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
         
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background-color: rgba(99, 102, 241, 0.2); border-radius: 20px; }
-        ::-webkit-scrollbar-thumb:hover { background-color: rgba(99, 102, 241, 0.4); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background-color: rgba(99, 102, 241, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(99, 102, 241, 0.6); }
 
         /* Animation Delay Utility */
-        .animation-delay-2000 {
-            animation-delay: 2s;
-        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
 
-        /* Utilities */
-        .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
         
+        .glass-panel-light {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        }
+
         .flip-card { perspective: 1000px; }
         .flip-card-inner {
-            transition: transform 0.6s;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-style: preserve-3d;
         }
         .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
@@ -90,39 +119,65 @@
             backface-visibility: hidden;
             position: absolute;
             inset: 0;
+            -webkit-backface-visibility: hidden;
         }
         .flip-card-back { transform: rotateY(180deg); }
+
+        /* Smooth text selection */
+        ::selection {
+            background: rgba(99, 102, 241, 0.3);
+            color: white;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden selection:bg-indigo-100 selection:text-indigo-900">
+<body class="h-screen overflow-hidden antialiased">
 
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- ICONS ---
+        // --- ICON SYSTEM (Fixed Sizing) ---
+        const IconWrapper = ({ children, size = 24, className, ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className={className}
+                {...props}
+            >
+                {children}
+            </svg>
+        );
+
         const Icons = {
-            Mic: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>,
-            Stop: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>,
-            Sparkles: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M7 5h4"/></svg>,
-            History: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/></svg>,
-            FileText: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>,
-            Brain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
-            Layers: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>,
-            Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
-            RotateCcw: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 3v9h9"/></svg>,
-            Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-            Copy: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
-            Loader2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
-            Zap: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-            TrendingUp: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 2 17"/><polyline points="17 6 23 6 23 12"/></svg>,
-            AlertTriangle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
-            Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
-            Video: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>,
-            Presentation: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>
+            Mic: (props) => <IconWrapper {...props}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></IconWrapper>,
+            Stop: (props) => <IconWrapper {...props}><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></IconWrapper>,
+            Sparkles: (props) => <IconWrapper {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M7 5h4"/></IconWrapper>,
+            History: (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/></IconWrapper>,
+            FileText: (props) => <IconWrapper {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconWrapper>,
+            Brain: (props) => <IconWrapper {...props}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></IconWrapper>,
+            Layers: (props) => <IconWrapper {...props}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></IconWrapper>,
+            Check: (props) => <IconWrapper {...props}><polyline points="20 6 9 17 4 12"/></IconWrapper>,
+            X: (props) => <IconWrapper {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconWrapper>,
+            ChevronRight: (props) => <IconWrapper {...props}><path d="m9 18 6-6-6-6"/></IconWrapper>,
+            RotateCcw: (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 3v9h9"/></IconWrapper>,
+            Download: (props) => <IconWrapper {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconWrapper>,
+            Copy: (props) => <IconWrapper {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconWrapper>,
+            Loader2: (props) => <IconWrapper {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></IconWrapper>,
+            Zap: (props) => <IconWrapper {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></IconWrapper>,
+            TrendingUp: (props) => <IconWrapper {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 2 17"/><polyline points="17 6 23 6 23 12"/></IconWrapper>,
+            AlertTriangle: (props) => <IconWrapper {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconWrapper>,
+            Eye: (props) => <IconWrapper {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></IconWrapper>,
+            Video: (props) => <IconWrapper {...props}><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></IconWrapper>,
+            Presentation: (props) => <IconWrapper {...props}><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></IconWrapper>,
+            Lightbulb: (props) => <IconWrapper {...props}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconWrapper>
         };
 
         // --- TOAST COMPONENT ---
@@ -131,13 +186,50 @@
                 const timer = setTimeout(onClose, 3000);
                 return () => clearTimeout(timer);
             }, [onClose]);
-            const bgClass = type === 'error' ? 'bg-red-500' : 'bg-indigo-600';
+            const bgClass = type === 'error' ? 'bg-rose-500' : 'bg-emerald-500';
             return (
-                <div className={`fixed top-6 right-6 ${bgClass} text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 z-50 animate-fade-in`}>
-                    {type === 'success' ? <Icons.Check className="w-5 h-5" /> : <Icons.X className="w-5 h-5" />}
-                    <span className="font-medium text-sm">{message}</span>
+                <div className={fixed top-6 right-6 ${bgClass} text-white px-6 py-4 rounded-2xl shadow-glow flex items-center gap-3 z-50 animate-scale-in border border-white/20 backdrop-blur-md}>
+                    {type === 'success' ? <Icons.Check size={20} /> : <Icons.X size={20} />}
+                    <span className="font-semibold tracking-wide text-sm">{message}</span>
                 </div>
             );
+        };
+
+        // Helper function to generate dynamic velocity data
+        const getVelocityBars = (history) => {
+            // We want to display the last 5 sessions' scores (velocity)
+            const numBars = 5;
+            let velocityData = [];
+
+            // 1. Get the last 'numBars' valid sessions
+            const relevantHistory = history
+                .filter(item => item.teacherScore && item.teacherScore.score != null)
+                .slice(0, numBars)
+                .reverse(); // Reverse to show oldest on left
+
+            // 2. Map scores to bar heights (1-10 scale -> 20%-100% height)
+            velocityData = relevantHistory.map((item, index) => {
+                const score = item.teacherScore.score; 
+                // Scale score (1-10) to height (20-100) for visual representation
+                const height = Math.min(100, Math.max(20, score * 10)); 
+                return {
+                    height: height,
+                    score: score,
+                    isLatest: index === relevantHistory.length - 1
+                };
+            });
+
+            // 3. Pad with placeholder data if less than 5 points
+            while (velocityData.length < numBars) {
+                velocityData.unshift({
+                    height: Math.floor(Math.random() * (35 - 15 + 1) + 15), // Placeholder height
+                    score: null,
+                    isLatest: false
+                });
+            }
+            
+            // Return only the final 5 bars
+            return velocityData.slice(-numBars);
         };
 
         // --- APP COMPONENT ---
@@ -162,7 +254,7 @@
 
             const showToast = (msg, type = 'success') => setToast({ message: msg, type });
 
-            // Initialize Speech Recognition
+            // Initialize Speech Recognition & Load Memory/History
             useEffect(() => {
                 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -184,19 +276,18 @@
                     };
                 }
                 
-                // Load Memory (Safely)
+                // Load Memory
                 try {
                     const savedMem = localStorage.getItem('acis_memory');
                     if(savedMem) {
                         const parsed = JSON.parse(savedMem);
-                        // Merge with default structure to prevent undefined errors
                         setLongTermMemory(prev => ({ ...prev, ...parsed }));
                     }
                 } catch (e) {
                     console.error("Error loading memory:", e);
                 }
 
-                // Load History (Safely)
+                // Load History
                 try {
                     const savedHist = localStorage.getItem('classplus_history');
                     if (savedHist) setHistory(JSON.parse(savedHist));
@@ -218,238 +309,108 @@
                 }
             };
 
-            // Helper to Save History
             const saveSessionToHistory = (newItem) => {
                 setHistory(prev => {
                     const updated = [newItem, ...prev];
-                    localStorage.setItem('classplus_history', JSON.stringify(updated));
-                    return updated;
+                    // Keep history capped to a reasonable size, e.g., 50 sessions
+                    const saved = updated.slice(0, 50); 
+                    localStorage.setItem('classplus_history', JSON.stringify(saved));
+                    return saved;
                 });
             };
 
-            // ACIS: Topic Explanation Quality Rating (Feature 2)
-            const analyzeTeacherClarity = (text) => {
-                if (!text) return null;
-                const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text]; // Fallback if no punctuation
-                
-                const avgLength = sentences.reduce((acc, s) => acc + s.split(' ').length, 0) / sentences.length;
-                const complexWords = text.split(' ').filter(w => w.length > 10).length;
-                
-                // Heuristics for "Understanding"
-                const exampleIndicators = ['for example', 'like', 'imagine', 'instance', 'such as'];
-                const exampleUsageCount = exampleIndicators.reduce((count, word) => count + (text.toLowerCase().includes(word) ? 1 : 0), 0);
-                
-                // Scores (1-10)
-                const simplicityScore = Math.max(1, Math.min(10, 10 - (avgLength / 4)));
-                const clarityScore = Math.max(1, Math.min(10, 10 - (complexWords / 15)));
-                const exampleScore = Math.min(10, exampleUsageCount * 2.5); // 4 examples = 10
-                
-                const overallScore = ((simplicityScore + clarityScore + exampleScore) / 3).toFixed(1);
+            // NEW LOGIC: Update Memory (Retention Gaps) based on Quiz Answers (Mastery Check)
+            const updateMemory = (quizAnswers) => {
+                setLongTermMemory(prevMemory => {
+                    // Start with the existing list of weak concepts
+                    let currentWeak = new Set(prevMemory.weakConcepts || []);
 
-                let feedback = "Excellent clarity.";
-                if (exampleScore < 4) feedback = "Topic abstraction is high. Suggest adding concrete examples.";
-                else if (simplicityScore < 5) feedback = "Sentence structures are dense. Try splitting ideas.";
+                    quizAnswers.forEach(answer => {
+                        // If the answer was incorrect, ADD the concept to the weak list
+                        if (!answer.correct) {
+                            currentWeak.add(answer.concept);
+                        } else {
+                            // If the answer was correct, REMOVE it from the weak list (mastery achieved)
+                            currentWeak.delete(answer.concept);
+                        }
+                    });
 
-                return { 
-                    score: overallScore, 
-                    simplicity: simplicityScore.toFixed(1),
-                    clarity: clarityScore.toFixed(1),
-                    examples: exampleScore.toFixed(1),
-                    feedback 
-                };
+                    const newWeakConcepts = Array.from(currentWeak);
+                    const newMemory = { ...prevMemory, weakConcepts: newWeakConcepts };
+                    
+                    // Save to persistent storage
+                    localStorage.setItem('acis_memory', JSON.stringify(newMemory));
+                    return newMemory;
+                });
             };
 
             const processContent = async () => {
                 if (!inputText.trim()) {
-                    showToast("Please enter text", "error");
+                    showToast("Please enter or record some text first", "error"); 
                     return;
                 }
 
                 setIsProcessing(true);
 
-                try {
-                    const res = await fetch("/api/generate-notes", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ transcript: inputText })
-                    });
+                // --- API Call Simulation/Wrapper ---
+                const maxRetries = 3;
+                let lastError = null;
 
-                    const data = await res.json();
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const apiUrl = "/api/generate-notes";
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: inputText }),
+                        });
 
-                    if (data.error) {
-                        console.error(data.raw);
-                        showToast("AI parsing error", "error");
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            console.error("Backend Error Response:", data);
+                            throw new Error(data.error || "Backend returned non-OK status.");
+                        }
+
+                        // Success block
+                        setNotes(data.notes || "No notes generated.");
+                        setTeacherScore(data.teacher_score || { score: 0, simplicity: 0, clarity: 0, examples: 0, feedback: "No feedback" });
+                        setQuiz(data.quiz || []); 
+                        setFlashcards(data.flashcards || []); 
+                        setActiveTab("notes");
+
+                        saveSessionToHistory({
+                            id: Date.now(),
+                            date: new Date().toLocaleDateString(),
+                            time: new Date().toLocaleTimeString(),
+                            preview: (data.notes || inputText).substring(0, 100) + '...',
+                            fullText: inputText,
+                            notes: data.notes,
+                            quiz: data.quiz || [],
+                            flashcards: data.flashcards || [],
+                            teacherScore: data.teacher_score
+                        });
+
+                        showToast("ACIS analysis complete!", "success");
                         setIsProcessing(false);
-                        return;
+                        return; // Exit function on success
+                    } catch (err) {
+                        lastError = err;
+                        console.warn(Attempt ${i + 1} failed. Retrying..., err);
+                        if (i < maxRetries - 1) {
+                            await new Promise(resolve => setTimeout(resolve, (2 ** i) * 1000)); // Exponential backoff
+                        }
                     }
-
-                    setNotes(data.notes);
-                    setTeacherScore(data.teacher_score);
-                    setActiveTab("notes");
-
-                    showToast("ACIS analysis complete");
-                } catch (err) {
-                    console.error(err);
-                    showToast("Backend connection failed", "error");
                 }
+
+                // If loop completes without returning (all retries failed)
+                console.error("Final error generating notes:", lastError);
+                showToast(Error: ${lastError.message}, "error");
+                // --- End API Call Simulation/Wrapper ---
 
                 setIsProcessing(false);
             };
-
-            const generateMarkdownNotes = (text) => {
-                const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text];
-                const words = text.split(/\s+/).filter(w => w.length > 3); 
-                
-                // Safe access to words array
-                let topic = words.length > 0 ? words[0].charAt(0).toUpperCase() + words[0].slice(1) : "Topic";
-                const summary = sentences.slice(0, 3).join(' ');
-                
-                // Enhanced Key Concepts (up to 8 points)
-                const keyConcepts = sentences.slice(0, 8).map(s => `- ${s.trim()}`).join('\n');
-                
-                // New Detailed Breakdown section (takes next batch of sentences)
-                const details = sentences.slice(8, 20).map(s => `> ${s.trim()}`).join('\n\n');
-                
-                // Glossary/Vocabulary extraction (Capitalized words mid-sentence)
-                const vocab = [...new Set(words.filter(w => /^[A-Z]/.test(w) && w.length > 4))].slice(0,6).map(v => `- **${v}**`).join('\n');
-
-                return `# Study Guide: ${topic}\n\n## 1. Executive Summary\n${summary}\n\n## 2. Key Concepts\n${keyConcepts}\n\n## 3. Detailed Breakdown\n${details || "Details integrated in summary."}\n\n## 4. Key Terminology\n${vocab || "- No specific terminology detected."}\n\n## 5. ACIS Recommendation\nBased on text analysis, focus on definitions first.`;
-            };
-
-            const generateFlashcards = (text) => {
-                const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [];
-                const cards = [];
-                const matchers = [' is ', ' are ', ' refers to ', ' means ', ' defined as ', ' consists of '];
-
-                sentences.forEach(s => {
-                    for (let m of matchers) {
-                        if (s.includes(m) && cards.length < 15) { // Increased limit
-                            const [term, def] = s.split(m);
-                            // Quality check: term shouldn't be too long, definition should be substantial
-                            if (term && def && term.trim().length < 50 && def.trim().length > 5) {
-                                cards.push({ term: term.trim(), definition: def.trim() });
-                                break; // Stop checking other matchers for this sentence
-                            }
-                        }
-                    }
-                });
-
-                // Fallback if not enough cards found using strict matchers
-                if (cards.length < 5) {
-                    const words = text.split(/\s+/).filter(w => w.length > 7);
-                    const uniqueWords = [...new Set(words)];
-                    uniqueWords.slice(0, 8).forEach(w => { // Add up to 8 backup cards
-                        if (cards.length < 15) {
-                            const context = sentences.find(s => s.includes(w)) || `Related to ${w}`;
-                            cards.push({ 
-                                term: w.charAt(0).toUpperCase() + w.slice(1), 
-                                definition: `Context: "...${context.slice(0, 60)}..."` 
-                            });
-                        }
-                    });
-                }
-
-                return cards;
-            };
-
-            const generateSmartQuiz = (text, weakConcepts = []) => {
-                const sentences = text.match(/[^\.!\?]+[\.!\?]+/g) || [text];
-                const quizData = [];
-                const allWords = text.split(/\s+/).map(w => w.replace(/[^a-zA-Z]/g, ''));
-                let uniqueWords = [...new Set(allWords.filter(w => w.length > 4))];
-
-                // FIX: Ensure enough distractors exist
-                if (uniqueWords.length < 4) {
-                    uniqueWords = [...uniqueWords, "Variable", "Process", "Analysis", "Concept", "Theory", "Data"];
-                }
-
-                // --- 1. MEMORY-DRIVEN QUESTIONS (Contextual) ---
-                // Only ask about weak concepts IF they appear in the current text (Topics are telled)
-                if (weakConcepts && weakConcepts.length > 0) {
-                     weakConcepts.forEach(concept => {
-                         // Check intersection: Is the weak concept in the current text?
-                         if (text.toLowerCase().includes(concept.toLowerCase())) {
-                             // Find context sentence
-                             const sentence = sentences.find(s => s.toLowerCase().includes(concept.toLowerCase()));
-                             if (sentence && quizData.length < 2) { // Limit memory injection to 2 Qs
-                                 const qText = sentence.replace(new RegExp(concept, 'gi'), "_______");
-                                 quizData.push({
-                                     id: `mem-${Date.now()}-${Math.random()}`,
-                                     question: `REVIEW (${concept}): Complete the thought: "${qText.trim().substring(0, 100)}..."`,
-                                     options: [
-                                        { text: concept, type: 'correct' },
-                                        { text: "Something else", type: 'random' },
-                                        { text: "Unrelated term", type: 'random' },
-                                        { text: `Not ${concept}`, type: 'misconception' }
-                                     ].sort(() => 0.5 - Math.random()),
-                                     correctAnswer: concept,
-                                     concept: concept,
-                                     isRemediation: true
-                                 });
-                             }
-                         }
-                     });
-                }
-
-                // --- 2. STANDARD GENERATION (Strictly based on Text) ---
-                sentences.forEach((s, idx) => {
-                    if (quizData.length >= 10) return; 
-                    
-                    const match = s.match(/\b(\w+)\s+(?:is|refers to|means|defined as)\s+(.*)/i);
-                    
-                    if (match && match[1].length > 4) {
-                        const term = match[1];
-                        const definition = match[2].trim().slice(0, 60);
-                        const misconceptionDistractor = `The opposite of ${term}`; 
-
-                        quizData.push({
-                            id: idx,
-                            question: `What term describes: "${definition}..."?`,
-                            options: [
-                                { text: term, type: 'correct' },
-                                { text: uniqueWords[(idx + 1) % uniqueWords.length] || "Other", type: 'random' },
-                                { text: uniqueWords[(idx + 2) % uniqueWords.length] || "None", type: 'random' },
-                                { text: misconceptionDistractor, type: 'misconception' }
-                            ].sort(() => 0.5 - Math.random()),
-                            correctAnswer: term,
-                            concept: term 
-                        });
-                    } else if (s.length > 30 && idx % 2 === 0 && quizData.length < 10) {
-                        const words = s.split(' ');
-                        const targetWord = words.find(w => w.length > 6);
-                        if (targetWord) {
-                            const cleanTarget = targetWord.replace(/[^a-zA-Z]/g, '');
-                            const qText = s.replace(targetWord, "_______");
-                            quizData.push({
-                                id: idx,
-                                question: `Complete: "${qText.substring(0, 80)}..."`,
-                                options: [
-                                    { text: cleanTarget, type: 'correct' },
-                                    { text: uniqueWords[Math.floor(Math.random() * uniqueWords.length)] || "Unknown", type: 'random' },
-                                    { text: "Something else", type: 'random' },
-                                    { text: `Not ${cleanTarget}`, type: 'misconception' }
-                                ].sort(() => 0.5 - Math.random()),
-                                correctAnswer: cleanTarget,
-                                concept: "Contextual Understanding"
-                            });
-                        }
-                    }
-                });
-
-                if (quizData.length === 0) {
-                     quizData.push({ id:0, question: "Identify the main topic:", options: [{text:"Topic A", type:'correct'}, {text:"Topic B", type:'misconception'}], correctAnswer: "Topic A", concept: "General" });
-                }
-                return quizData;
-            };
             
-            // ACIS: Memory Update
-            const updateMemory = (weakness) => {
-                const currentWeak = longTermMemory && Array.isArray(longTermMemory.weakConcepts) ? longTermMemory.weakConcepts : [];
-                const newMemory = { ...longTermMemory, weakConcepts: [...new Set([...currentWeak, ...weakness])] };
-                setLongTermMemory(newMemory);
-                localStorage.setItem('acis_memory', JSON.stringify(newMemory));
-            };
-
             const loadSession = (session) => {
                 setInputText(session.fullText);
                 setNotes(session.notes);
@@ -460,41 +421,43 @@
             };
 
             return (
-                <div className="flex h-screen w-full font-sans">
+                <div className="flex h-screen w-full font-sans overflow-hidden bg-brand-dark">
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                     
+                    {/* Background Ambience */}
+                    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-brand-primary rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob"></div>
+                        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-secondary rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000"></div>
+                        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] bg-brand-accent rounded-full mix-blend-screen filter blur-[120px] opacity-10 animate-blob animation-delay-4000"></div>
+                    </div>
+
                     {/* SIDEBAR */}
-                    <nav className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between border-r border-slate-800 transition-all duration-300 z-50">
+                    <nav className="w-20 lg:w-72 glass-panel flex flex-col justify-between border-r border-white/10 relative z-50 backdrop-blur-2xl transition-all duration-300">
                         <div>
-                            <div className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-800">
-                                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                            <div className="h-24 flex items-center justify-center lg:justify-start lg:px-8 border-b border-white/5">
+                                <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/30">
                                     <Icons.Brain className="w-6 h-6 text-white" />
                                 </div>
-                                <span className="ml-3 font-bold text-lg tracking-tight hidden lg:block">ClassPulse AI</span>
+                                <span className="ml-4 font-bold text-xl tracking-tight text-white hidden lg:block bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">ClassPulse AI</span>
                             </div>
 
-                            <div className="p-4 space-y-2 mt-4">
-                                <NavButton active={activeTab === 'record'} onClick={() => setActiveTab('record')} icon={<Icons.Mic />} label="Capture" />
-                                <NavButton active={activeTab === 'insights'} onClick={() => setActiveTab('insights')} icon={<Icons.TrendingUp />} label="Insights (ACIS)" />
-                                <div className="pt-4 pb-2"><div className="h-px bg-slate-800 mx-4"></div></div>
+                            <div className="p-4 space-y-2 mt-6">
+                                <NavButton active={activeTab === 'record'} onClick={() => setActiveTab('record')} icon={<Icons.Mic />} label="ClassPulse" />
+                                <NavButton active={activeTab === 'insights'} onClick={() => setActiveTab('insights')} icon={<Icons.TrendingUp />} label="ACIS Insights" />
+                                <div className="py-4"><div className="h-px bg-white/10 mx-4"></div></div>
                                 <NavButton active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} icon={<Icons.FileText />} label="Smart Notes" disabled={!notes} />
                                 <NavButton active={activeTab === 'flashcards'} onClick={() => setActiveTab('flashcards')} icon={<Icons.Layers />} label="Flashcards" disabled={!flashcards.length} />
                                 <NavButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Icons.Sparkles />} label="Quiz Mode" disabled={!quiz.length} />
                             </div>
                         </div>
-                        <div className="p-4 border-t border-slate-800">
-                            <NavButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<Icons.History />} label="History" />
+                        <div className="p-6 border-t border-white/5 bg-black/20">
+                            <NavButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<Icons.History />} label="Session History" />
                         </div>
                     </nav>
 
                     {/* MAIN CONTENT */}
-                    <main className="flex-1 bg-slate-50 relative overflow-hidden flex flex-col">
-                        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                            <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-                            <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-                        </div>
-
-                        <div className="flex-1 relative z-10 overflow-y-auto p-4 lg:p-8">
+                    <main className="flex-1 relative overflow-hidden flex flex-col z-10">
+                        <div className="flex-1 relative z-10 overflow-y-auto p-4 lg:p-12 scroll-smooth">
                             {activeTab === 'record' && (
                                 <RecordView 
                                     inputText={inputText} 
@@ -517,14 +480,22 @@
         };
 
         const NavButton = ({ active, onClick, icon, label, disabled }) => (
-            <button onClick={onClick} disabled={disabled} className={`w-full flex items-center p-3 rounded-xl transition-all duration-200 group ${active ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                <span className={`${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>{React.cloneElement(icon, { size: 22 })}</span>
-                <span className="ml-3 font-medium hidden lg:block">{label}</span>
-                {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white hidden lg:block shadow-sm"></div>}
+            <button 
+                onClick={onClick} 
+                disabled={disabled} 
+                className={`w-full flex items-center p-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden
+                    ${active ? 'bg-brand-primary text-white shadow-glow' : 'text-slate-400 hover:bg-white/5 hover:text-white'} 
+                    ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.02]'}
+                `}
+            >
+                {active && <div className="absolute inset-0 bg-gradient-to-r from-brand-primary to-brand-secondary opacity-100"></div>}
+                <span className={relative z-10 ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}}>{React.cloneElement(icon, { size: 22, strokeWidth: active ? 2.5 : 2 })}</span>
+                <span className="relative z-10 ml-3 font-medium tracking-wide hidden lg:block">{label}</span>
+                {active && <div className="relative z-10 ml-auto w-2 h-2 rounded-full bg-white hidden lg:block shadow-sm animate-pulse"></div>}
             </button>
         );
 
-        // --- RECORD VIEW (Rebranded) ---
+        // --- RECORD VIEW ---
         const RecordView = ({ inputText, setInputText, isRecording, toggleRecording, processContent, isProcessing }) => {
             const [hesitation, setHesitation] = useState(false);
             const lastInputTime = useRef(Date.now());
@@ -547,42 +518,42 @@
             }
 
             return (
-                <div className="max-w-4xl mx-auto h-full flex flex-col animate-fade-in">
-                    <header className="mb-8 flex items-center justify-between">
+                <div className="max-w-5xl mx-auto h-full flex flex-col animate-fade-in">
+                    <header className="mb-10 flex items-end justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">ClassPulse AI</h1>
-                            <p className="text-slate-500 mt-1">ClassPulse AI is analyzing your lecture for concepts & clarity...</p>
+                            <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">ClassPulse</h1>
+                            <p className="text-slate-400 text-lg">Transcribe your lecture or paste notes to begin analysis.</p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-4">
                             {hesitation && (
-                                <div className="flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full border border-yellow-200 animate-pulse">
-                                    <Icons.AlertTriangle className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase tracking-wide">Pacing Issue?</span>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 text-yellow-200 rounded-full border border-yellow-500/30 animate-pulse backdrop-blur-md">
+                                    <Icons.AlertTriangle size={16} />
+                                    <span className="text-xs font-bold uppercase tracking-wide">Pacing Alert</span>
                                 </div>
                             )}
                             {isRecording && (
-                                <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-600 rounded-full border border-red-200 animate-pulse">
-                                    <div className="w-2 h-2 rounded-full bg-red-600"></div>
-                                    <span className="text-xs font-bold uppercase tracking-wide">Live Analysis</span>
+                                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-200 rounded-full border border-red-500/30 animate-pulse backdrop-blur-md">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <span className="text-xs font-bold uppercase tracking-wide">Recording Live</span>
                                 </div>
                             )}
                         </div>
                     </header>
 
-                    <div className="flex-1 glass rounded-3xl p-1 shadow-2xl shadow-indigo-100/50 flex flex-col relative overflow-hidden group border border-white/50">
+                    <div className="flex-1 glass-panel rounded-3xl p-1.5 flex flex-col relative overflow-hidden group transition-all duration-500 hover:shadow-glow/20">
                         <textarea
                             value={inputText}
                             onChange={handleChange}
                             placeholder="Start lecturing, typing, or recording..."
-                            className="w-full h-full bg-white/50 p-6 md:p-8 rounded-[20px] outline-none text-lg text-slate-700 placeholder:text-slate-400 resize-none font-sans leading-relaxed focus:bg-white/80 transition-colors"
+                            className="w-full h-full bg-brand-dark/40 p-8 rounded-[20px] outline-none text-xl text-slate-200 placeholder:text-slate-600 resize-none font-sans leading-relaxed focus:bg-brand-dark/60 transition-colors selection:bg-brand-primary/40"
                         />
-                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl shadow-xl transition-all hover:scale-105 border border-white/10">
-                            <button type="button" onClick={toggleRecording} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse-slow' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-                                {isRecording ? <Icons.Stop /> : <Icons.Mic />}
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl p-2.5 rounded-2xl shadow-2xl border border-white/10 transform transition-all hover:scale-105 hover:bg-black/80">
+                            <button type="button" onClick={toggleRecording} className={w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300 ${isRecording ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse' : 'bg-white/10 text-white hover:bg-white/20'}}>
+                                {isRecording ? <Icons.Stop size={28} /> : <Icons.Mic size={28} />}
                             </button>
-                            <div className="h-8 w-px bg-slate-700 mx-1"></div>
-                            <button type="button" onClick={processContent} disabled={isProcessing} className={`px-6 h-12 rounded-xl font-semibold flex items-center gap-2 transition-all ${inputText.trim() && !isProcessing ? 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/50' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                                {isProcessing ? <><Icons.Loader2 className="animate-spin" /> Analyzing...</> : <><Icons.Sparkles className="w-5 h-5" /> Analyze</>}
+                            <div className="h-8 w-px bg-white/10 mx-2"></div>
+                            <button type="button" onClick={processContent} disabled={isProcessing} className={px-8 h-14 rounded-xl font-bold text-lg flex items-center gap-3 transition-all duration-300 ${inputText.trim() && !isProcessing ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white hover:shadow-glow' : 'bg-white/5 text-slate-500 cursor-not-allowed'}}>
+                                {isProcessing ? <><Icons.Loader2 className="animate-spin" size={20} /> Processing...</> : <><Icons.Sparkles size={20} /> Analyze Content</>}
                             </button>
                         </div>
                     </div>
@@ -590,58 +561,71 @@
             );
         };
 
-        // --- UPGRADE 3: TEACHER EXPLANATION QUALITY (UPDATED) ---
+        // --- NOTES VIEW ---
         const NotesView = ({ notes, teacherScore, showToast }) => {
-            const handleCopy = () => { navigator.clipboard.writeText(notes); showToast("Notes copied"); };
-            const renderMarkdown = (text) => text.split('\n').map((line, i) => {
-                if (line.startsWith('# ')) return <h1 key={i} className="text-3xl font-bold text-indigo-900 mt-6 mb-4">{line.replace('# ', '')}</h1>;
-                if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold text-slate-800 mt-6 mb-3 border-b border-indigo-100 pb-2">{line.replace('## ', '')}</h2>;
-                if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc pl-2 text-slate-700 mb-2">{line.replace('- ', '')}</li>;
-                if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-indigo-200 pl-4 italic text-slate-600 mb-4">{line.replace('> ', '')}</blockquote>;
-                return <p key={i} className="text-slate-600 leading-relaxed mb-2">{line}</p>;
-            });
+            const handleCopy = () => { navigator.clipboard.writeText(notes); showToast("Notes copied to clipboard"); };
+            
+            // Enhanced Markdown Renderer to support inline bolding
+            const renderMarkdown = (text) => {
+                const parseInline = (line) => {
+                    const parts = line.split(/(\\.?\\*)/g);
+                    return parts.map((part, i) => {
+                        if (part.startsWith('') && part.endsWith('')) {
+                            return <strong key={i} className="text-white font-bold">{part.slice(2, -2)}</strong>;
+                        }
+                        return part;
+                    });
+                };
+
+                return text.split('\n').map((line, i) => {
+                    if (line.startsWith('## ')) return <h2 key={i} className="text-2xl font-bold text-indigo-200 mt-8 mb-4 pb-2 border-b border-white/10 flex items-center gap-2"><span className="w-1.5 h-6 bg-brand-primary rounded-full"></span>{parseInline(line.replace('## ', ''))}</h2>;
+                    if (line.startsWith('# ')) return <h1 key={i} className="text-4xl font-extrabold text-white mt-8 mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">{parseInline(line.replace('# ', ''))}</h1>;
+                    if (line.startsWith('- ')) return <li key={i} className="ml-4 list-none relative pl-6 text-slate-300 mb-3 before:content-['•'] before:absolute before:left-0 before:text-brand-primary before:font-bold">{parseInline(line.replace('- ', ''))}</li>;
+                    if (line.startsWith('> ')) return <blockquote key={i} className="my-6 border-l-4 border-brand-accent bg-brand-accent/5 p-4 rounded-r-xl italic text-slate-300">{parseInline(line.replace('> ', ''))}</blockquote>;
+                    return <p key={i} className="text-slate-300 leading-relaxed mb-4 text-lg">{parseInline(line)}</p>;
+                });
+            };
 
             return (
-                <div className="max-w-6xl mx-auto animate-slide-up pb-20 flex flex-col xl:flex-row gap-6">
+                <div className="max-w-7xl mx-auto animate-slide-up pb-20 flex flex-col xl:flex-row gap-8">
                     <div className="flex-1">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800">Smart Notes</h2>
-                            <button onClick={handleCopy} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Icons.Copy className="w-5 h-5" /></button>
+                            <h2 className="text-3xl font-bold text-white tracking-tight">Smart Notes</h2>
+                            <button onClick={handleCopy} className="p-3 text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl transition-all border border-brand-primary/20"><Icons.Copy size={20} /></button>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 md:p-12 min-h-[60vh] paper-doc">
+                        <div className="glass-panel rounded-2xl p-10 md:p-14 min-h-[60vh] text-slate-200 shadow-2xl">
                             {renderMarkdown(notes)}
                         </div>
                     </div>
                     
                     {/* ACIS Topic Explanation Rating */}
                     {teacherScore && (
-                        <div className="w-full xl:w-80">
-                            <div className="bg-white rounded-xl shadow-lg border border-indigo-100 p-6 sticky top-6">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                                    <Icons.Eye className="w-5 h-5 text-indigo-600"/> Explanation Quality
+                        <div className="w-full xl:w-96 animate-slide-up" style={{animationDelay: '0.1s'}}>
+                            <div className="glass-panel-light rounded-3xl p-8 sticky top-6 shadow-glow border-t-4 border-t-brand-primary bg-white/95">
+                                <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-6 text-xl">
+                                    <Icons.Eye size={24} className="text-brand-primary"/> Quality Audit
                                 </h3>
-                                <div className="mb-6 text-center">
-                                    <div className="text-4xl font-bold text-indigo-600 mb-1">{teacherScore.score}</div>
-                                    <div className="text-xs text-slate-500 uppercase tracking-wide">Effectiveness Score</div>
+                                <div className="mb-8 text-center relative">
+                                    <div className="absolute inset-0 bg-brand-primary/5 rounded-full blur-2xl transform scale-75"></div>
+                                    <div className={text-6xl font-black relative z-10 ${teacherScore.score > 7.5 ? 'text-emerald-500' : teacherScore.score > 5 ? 'text-amber-500' : 'text-rose-500'} mb-2}>{teacherScore.score}</div>
+                                    <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">ACIS Score</div>
                                 </div>
                                 
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1 font-medium text-slate-600"><span>Simplicity</span><span>{teacherScore.simplicity}/10</span></div>
-                                        <div className="w-full bg-slate-100 rounded-full h-1.5"><div className="bg-blue-500 h-1.5 rounded-full" style={{width: `${teacherScore.simplicity * 10}%`}}></div></div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1 font-medium text-slate-600"><span>Clarity</span><span>{teacherScore.clarity}/10</span></div>
-                                        <div className="w-full bg-slate-100 rounded-full h-1.5"><div className="bg-indigo-500 h-1.5 rounded-full" style={{width: `${teacherScore.clarity * 10}%`}}></div></div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1 font-medium text-slate-600"><span>Example Usage</span><span>{teacherScore.examples}/10</span></div>
-                                        <div className="w-full bg-slate-100 rounded-full h-1.5"><div className="bg-purple-500 h-1.5 rounded-full" style={{width: `${teacherScore.examples * 10}%`}}></div></div>
-                                    </div>
+                                <div className="space-y-6 mb-8">
+                                    {[
+                                        { label: 'Simplicity', val: teacherScore.simplicity, color: 'bg-blue-500' },
+                                        { label: 'Clarity', val: teacherScore.clarity, color: 'bg-indigo-500' },
+                                        { label: 'Examples', val: teacherScore.examples, color: 'bg-purple-500' }
+                                    ].map((stat, idx) => (
+                                        <div key={idx}>
+                                            <div className="flex justify-between text-sm mb-2 font-semibold text-slate-600"><span>{stat.label}</span><span>{stat.val}/10</span></div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden"><div className={${stat.color} h-2.5 rounded-full transition-all duration-1000 ease-out} style={{width: ${stat.val * 10}%}}></div></div>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                                    <p className="text-xs text-indigo-800 font-medium">"{teacherScore.feedback}"</p>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
+                                    <p className="text-sm text-slate-700 italic font-medium leading-relaxed">"{teacherScore.feedback}"</p>
                                 </div>
                             </div>
                         </div>
@@ -654,18 +638,24 @@
             const [flipped, setFlipped] = useState({});
             const toggleFlip = (index) => setFlipped(prev => ({ ...prev, [index]: !prev[index] }));
             return (
-                <div className="max-w-5xl mx-auto animate-slide-up">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-6">Flashcards ({cards.length})</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+                <div className="max-w-6xl mx-auto animate-slide-up">
+                    <h2 className="text-3xl font-bold text-white mb-8 tracking-tight">Knowledge Cards <span className="text-white/40 font-normal ml-2">({cards.length})</span></h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
                         {cards.map((card, idx) => (
-                            <div key={idx} className={`h-64 cursor-pointer flip-card group ${flipped[idx] ? 'flipped' : ''}`} onClick={() => toggleFlip(idx)}>
-                                <div className="flip-card-inner relative w-full h-full transition-all duration-500 rounded-2xl shadow-md hover:shadow-xl">
-                                    <div className="flip-card-front bg-white border border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center absolute inset-0 backface-hidden">
-                                        <h3 className="text-xl font-bold text-slate-800">{card.term}</h3>
-                                        <p className="text-xs text-slate-400 mt-4 absolute bottom-6">Click to reveal</p>
+                            <div key={idx} className={h-80 cursor-pointer flip-card group ${flipped[idx] ? 'flipped' : ''}} onClick={() => toggleFlip(idx)}>
+                                <div className="flip-card-inner relative w-full h-full rounded-3xl shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+                                    {/* FRONT */}
+                                    <div className="flip-card-front glass-panel bg-gradient-to-br from-white/10 to-white/5 rounded-3xl p-8 flex flex-col items-center justify-center text-center border border-white/20">
+                                        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-6 text-brand-accent backdrop-blur-sm">
+                                            <Icons.Lightbulb size={32} />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-white leading-tight">{card.term}</h3>
+                                        <p className="text-xs text-brand-primary mt-auto font-bold uppercase tracking-widest opacity-80">Tap to Reveal</p>
                                     </div>
-                                    <div className="flip-card-back bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl p-8 flex flex-col items-center justify-center text-center absolute inset-0 backface-hidden">
-                                        <p className="text-lg font-medium leading-relaxed">{card.definition}</p>
+                                    {/* BACK */}
+                                    <div className="flip-card-back bg-gradient-to-br from-brand-primary to-brand-secondary text-white rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-glow border border-white/20">
+                                        <p className="text-lg font-medium leading-relaxed text-white/95">{card.definition}</p>
+                                        <div className="mt-auto w-12 h-1 bg-white/30 rounded-full"></div>
                                     </div>
                                 </div>
                             </div>
@@ -675,14 +665,12 @@
             );
         };
 
-        // --- UPGRADE 1 & 2: LEARNING GAP INTELLIGENCE & AUTO REMEDIATION ---
         const QuizView = ({ questions, updateMemory, teacherScore }) => {
             const [currentIndex, setCurrentIndex] = useState(0);
             const [score, setScore] = useState(0);
             const [showResult, setShowResult] = useState(false);
-            const [answers, setAnswers] = useState([]); // { qId, correct, selected, concept, type }
-            
-            const [analysis, setAnalysis] = useState(null); // ACIS Output
+            const [answers, setAnswers] = useState([]); 
+            const [analysis, setAnalysis] = useState(null);
 
             const handleAnswer = (option) => {
                 if (answers.find(a => a.qId === questions[currentIndex].id)) return;
@@ -693,7 +681,8 @@
                     correct: isCorrect,
                     selected: option.text,
                     type: option.type,
-                    concept: questions[currentIndex].concept
+                    concept: questions[currentIndex].concept,
+                    explanation: questions[currentIndex].explanation
                 }]);
             };
 
@@ -703,126 +692,89 @@
             };
 
             const finishQuiz = () => {
-                // Feature 1: Student Understandability Score (SUS)
+                // Pass all answers to the mastery tracker
+                updateMemory(answers); // <-- CHANGED: Pass full answers array
+
                 const susScore = Math.round((score / questions.length) * 100);
-                
-                // Feature 2: Misconception Detection
                 const misconceptions = answers.filter(a => a.type === 'misconception');
                 const uniqueMisconceptions = [...new Set(misconceptions.map(a => a.concept))];
                 
-                // Update Long Term Memory
-                const weakConcepts = answers.filter(a => !a.correct).map(a => a.concept);
-                updateMemory([...new Set(weakConcepts)]);
-
-                // Feature 3: Auto Remediation Trigger (Decision Engine)
-                let remediation = { action: 'advance', type: 'none', reason: "High understanding." };
-                
+                let remediation = { action: 'advance', type: 'none', reason: "Excellent grasp of concepts." };
                 if (susScore < 50) {
-                    remediation = { 
-                        action: 'deep_remediation', 
-                        type: 'video', 
-                        reason: "Critical comprehension gap detected.",
-                        tool: "Google Veo 3"
-                    };
+                    remediation = { action: 'deep_remediation', type: 'video', reason: "Foundational gaps detected. You need a deeper visual review.", tool: "Google Veo 3" };
                 } else if (susScore < 80 || uniqueMisconceptions.length > 0) {
-                    remediation = { 
-                        action: 'review', 
-                        type: 'slides', 
-                        reason: "Specific misconceptions identified.",
-                        tool: "NotebookLM"
-                    };
+                    remediation = { action: 'review', type: 'slides', reason: "Specific nuances missed or minor misconceptions found.", tool: "NotebookLM" };
                 }
 
                 setAnalysis({ susScore, uniqueMisconceptions, remediation });
                 setShowResult(true);
             };
 
-            if (showResult) {
+            if (showResult && analysis) {
                 return (
-                    <div className="max-w-4xl mx-auto mt-6 animate-fade-in pb-20">
-                        {/* 1. SUS SCORE CARD */}
-                        <div className="grid md:grid-cols-3 gap-4 mb-6">
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center">
-                                <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Student Understandability Score</span>
-                                <div className={`text-5xl font-bold ${analysis.susScore > 70 ? 'text-green-500' : analysis.susScore > 40 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    <div className="max-w-4xl mx-auto mt-8 animate-scale-in pb-20">
+                        <div className="grid md:grid-cols-3 gap-6 mb-8">
+                            <div className="glass-panel rounded-3xl p-8 flex flex-col items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Mastery Score</span>
+                                <div className={text-7xl font-black ${analysis.susScore > 70 ? 'text-emerald-400' : analysis.susScore > 40 ? 'text-amber-400' : 'text-rose-400'} drop-shadow-lg}>
                                     {analysis.susScore}%
                                 </div>
-                                <span className="text-xs text-slate-400 mt-2">Confidence: High</span>
                             </div>
 
-                            {/* 2. MISCONCEPTION DETECTOR */}
-                            <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3">
-                                    <Icons.AlertTriangle className="w-5 h-5 text-red-500"/> Misconception Diagnosis
+                            <div className="md:col-span-2 glass-panel rounded-3xl p-8 bg-black/20">
+                                <h3 className="font-bold text-white flex items-center gap-3 mb-6 text-lg">
+                                    <Icons.AlertTriangle size={20} className="text-rose-500"/> Concept Diagnosis
                                 </h3>
                                 {analysis.uniqueMisconceptions.length > 0 ? (
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-slate-600 mb-2">Students are confusing the following concepts:</p>
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-slate-400 mb-2">Detected confusion in:</p>
                                         {analysis.uniqueMisconceptions.map((c, i) => (
-                                            <div key={i} className="flex items-center gap-3 bg-red-50 p-2 rounded-lg border border-red-100">
-                                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                                <span className="font-semibold text-red-900 text-sm">{c}</span>
-                                                <span className="text-xs text-red-600 ml-auto">Detected via Trap Answer</span>
+                                            <div key={i} className="flex items-center gap-3 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
+                                                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                                <span className="font-semibold text-rose-200 text-sm">{c}</span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                                        <Icons.Check className="w-8 h-8 mb-2 text-green-500 opacity-50"/>
-                                        <p className="text-sm">No major misconceptions detected.</p>
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                                        <Icons.Check size={40} className="mb-3 text-emerald-500/50"/>
+                                        <p className="text-sm font-medium">Clean conceptual model.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* 3. AUTO REMEDIATION ENGINE */}
-                        <div className={`rounded-2xl p-8 border mb-6 relative overflow-hidden ${analysis.remediation.type === 'video' ? 'bg-slate-900 text-white border-slate-800' : 'bg-indigo-50 border-indigo-100'}`}>
-                            {analysis.remediation.type === 'video' && (
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl opacity-20 -mr-16 -mt-16"></div>
-                            )}
-                            
+                        {/* Remediation */}
+                        <div className={rounded-3xl p-10 border mb-8 relative overflow-hidden transition-all hover:scale-[1.01] ${analysis.remediation.type === 'video' ? 'bg-slate-900 border-slate-700' : 'bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 border-brand-primary/30'}}>
                             <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className={`p-2 rounded-lg ${analysis.remediation.type === 'video' ? 'bg-white/10' : 'bg-indigo-100'}`}>
-                                        <Icons.Zap className={`w-6 h-6 ${analysis.remediation.type === 'video' ? 'text-yellow-400' : 'text-indigo-600'}`}/>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className={p-3 rounded-2xl ${analysis.remediation.type === 'video' ? 'bg-white/10' : 'bg-brand-primary'}}>
+                                        <Icons.Zap size={24} className="text-white"/>
                                     </div>
-                                    <h3 className={`text-xl font-bold ${analysis.remediation.type === 'video' ? 'text-white' : 'text-indigo-900'}`}>
-                                        ACIS Remediation Engine
-                                    </h3>
+                                    <h3 className="text-2xl font-bold text-white">ACIS Remediation Plan</h3>
                                 </div>
                                 
-                                <p className={`mb-6 max-w-xl ${analysis.remediation.type === 'video' ? 'text-slate-300' : 'text-indigo-800'}`}>
+                                <p className="mb-8 text-lg text-slate-300 leading-relaxed max-w-2xl">
                                     {analysis.remediation.reason} <br/>
-                                    <strong>Recommendation:</strong> Generate {analysis.remediation.type === 'video' ? 'Visual Explanation Video' : 'Simplified Slide Deck'} via {analysis.remediation.tool}.
+                                    <span className="text-white font-semibold block mt-2">Strategy: Generate {analysis.remediation.type === 'video' ? 'Visual Explanation' : 'Review Deck'} using {analysis.remediation.tool}.</span>
                                 </p>
 
                                 {analysis.remediation.type !== 'none' && (
                                     <div className="flex gap-4">
-                                        <button className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-transform hover:scale-105 ${analysis.remediation.type === 'video' ? 'bg-white text-slate-900' : 'bg-indigo-600 text-white'}`}>
-                                            {analysis.remediation.type === 'video' ? <Icons.Video className="w-5 h-5"/> : <Icons.Presentation className="w-5 h-5"/>}
-                                            Generate {analysis.remediation.type === 'video' ? 'Veo Video' : 'NotebookLM Slides'}
+                                        <button className="px-8 py-4 rounded-xl font-bold flex items-center gap-3 bg-white text-slate-900 hover:bg-slate-200 transition-colors shadow-lg shadow-white/10">
+                                            {analysis.remediation.type === 'video' ? <Icons.Video size={20}/> : <Icons.Presentation size={20}/>}
+                                            Generate Content
                                         </button>
-                                        <button className={`px-6 py-3 rounded-xl font-bold border ${analysis.remediation.type === 'video' ? 'border-white/20 hover:bg-white/10' : 'border-indigo-200 hover:bg-indigo-100'}`}>
-                                            Dismiss
+                                        <button className="px-8 py-4 rounded-xl font-bold border border-white/20 text-white hover:bg-white/10 transition-colors">
+                                            Later
                                         </button>
                                     </div>
                                 )}
                             </div>
                         </div>
-
-                        {/* 4. TEACHER FEEDBACK LINK */}
-                        {teacherScore && teacherScore.score < 7 && (
-                            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl flex items-center justify-between text-yellow-800 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Icons.Eye className="w-4 h-4"/>
-                                    <span>Explanation Clarity ({teacherScore.score}/10) might be contributing to low scores.</span>
-                                </div>
-                                <button className="font-bold underline" onClick={()=> document.querySelector('[data-tab="notes"]').click()}>View Analysis</button>
-                            </div>
-                        )}
                         
-                        <button onClick={()=>{setShowResult(false); setCurrentIndex(0); setScore(0); setAnswers([]);}} className="mt-8 w-full py-3 bg-white border border-slate-300 text-slate-600 rounded-xl font-semibold hover:bg-slate-50">
-                            Restart Assessment
+                        <button onClick={()=>{setShowResult(false); setCurrentIndex(0); setScore(0); setAnswers([]);}} className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold hover:bg-white/10 transition-colors">
+                            Start New Assessment
                         </button>
                     </div>
                 );
@@ -832,38 +784,51 @@
             const currentAnswer = answers.find(a => a.qId === currentQ.id);
 
             return (
-                <div className="max-w-2xl mx-auto mt-6 animate-slide-up pb-20">
-                    <div className="flex items-center justify-between mb-6">
-                        <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Question {currentIndex + 1} of {questions.length}</span>
-                        {currentQ.isRemediation && <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded font-bold">Review Mode</span>}
+                <div className="max-w-3xl mx-auto mt-8 animate-slide-up pb-20">
+                    <div className="flex items-center justify-between mb-8">
+                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Question {currentIndex + 1} / {questions.length}</span>
+                        {currentQ.isRemediation && <span className="text-xs px-3 py-1 bg-purple-500/20 text-purple-200 rounded-full font-bold border border-purple-500/30">Targeted Review</span>}
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
-                            <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}></div>
+                    <div className="glass-panel rounded-3xl p-10 relative overflow-hidden shadow-2xl">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-white/10">
+                            <div className="h-full bg-brand-accent transition-all duration-500 ease-out shadow-[0_0_10px_#38bdf8]" style={{ width: ${((currentIndex + 1) / questions.length) * 100}% }}></div>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-8 leading-relaxed">{currentQ.question}</h3>
-                        <div className="space-y-3">
+                        
+                        <h3 className="text-2xl font-bold text-white mb-10 leading-snug">{currentQ.question}</h3>
+                        
+                        <div className="space-y-4">
                             {currentQ.options.map((opt, idx) => {
-                                let style = "border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50";
+                                let style = "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-white/30";
                                 if (currentAnswer) {
-                                    if (opt.type === 'correct') style = "border-green-500 bg-green-50 text-green-700";
-                                    else if (opt.text === currentAnswer.selected) style = "border-red-500 bg-red-50 text-red-700";
+                                    if (opt.type === 'correct') style = "border-emerald-500/50 bg-emerald-500/20 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+                                    else if (opt.text === currentAnswer.selected) style = "border-rose-500/50 bg-rose-500/20 text-white";
+                                    else style = "opacity-50 border-transparent bg-transparent";
                                 }
                                 return (
-                                    <button key={idx} onClick={() => handleAnswer(opt)} disabled={!!currentAnswer} className={`w-full text-left p-4 rounded-xl border-2 transition-all font-medium flex justify-between items-center ${style}`}>
+                                    <button key={idx} onClick={() => handleAnswer(opt)} disabled={!!currentAnswer} className={w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 font-medium text-lg flex justify-between items-center group ${style} ${!currentAnswer && 'hover:scale-[1.01]'}}>
                                         <span>{opt.text}</span>
-                                        {currentAnswer && opt.type === 'correct' && <Icons.Check className="w-5 h-5"/>}
-                                        {currentAnswer && opt.text === currentAnswer.selected && opt.type !== 'correct' && <Icons.X className="w-5 h-5"/>}
+                                        {currentAnswer && opt.type === 'correct' && <Icons.Check size={24} className="text-emerald-400"/>}
+                                        {currentAnswer && opt.text === currentAnswer.selected && opt.type !== 'correct' && <Icons.X size={24} className="text-rose-400"/>}
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {/* EXPLANATION REVEAL */}
                         {currentAnswer && (
-                            <div className="mt-8 flex justify-end animate-fade-in">
-                                <button onClick={nextQuestion} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 flex items-center gap-2">
-                                    {currentIndex + 1 === questions.length ? "Finish Quiz" : "Next"} <Icons.ChevronRight className="w-5 h-5" />
-                                </button>
+                            <div className="mt-8 pt-6 border-t border-white/10 animate-fade-in">
+                                <div className="bg-brand-primary/10 rounded-xl p-5 border border-brand-primary/20 mb-6">
+                                    <div className="flex items-center gap-2 mb-2 text-brand-accent font-bold text-sm uppercase tracking-wide">
+                                        <Icons.Lightbulb size={16} /> Insight
+                                    </div>
+                                    <p className="text-slate-200 leading-relaxed">{currentAnswer.explanation || "Correct answer logic applies here."}</p>
+                                </div>
+                                <div className="flex justify-end">
+                                    <button onClick={nextQuestion} className="px-8 py-3 bg-white text-brand-dark rounded-xl font-bold hover:bg-slate-200 transition-colors flex items-center gap-2 shadow-lg hover:scale-105 transform duration-200">
+                                        {currentIndex + 1 === questions.length ? "See Results" : "Next Question"} <Icons.ChevronRight size={20} />
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -871,45 +836,74 @@
             );
         };
 
-        // --- UPGRADE 4: MEMORY & CONTINUITY ---
         const InsightsView = ({ memory, history }) => {
             const weakList = memory.weakConcepts || [];
+            // Dynamically calculate the last 5 session scores for the velocity chart
+            const velocityBars = useMemo(() => getVelocityBars(history), [history]);
+
+            // Calculate the average score for display
+            const validScores = history
+                .filter(item => item.teacherScore && item.teacherScore.score != null)
+                .map(item => item.teacherScore.score);
+            const averageScore = validScores.length > 0 
+                ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(1)
+                : 'N/A';
+            const velocityLabel = validScores.length > 0 ? Avg. Score: ${averageScore}/10 : 'No recent data';
+
+
             return (
-                <div className="max-w-4xl mx-auto animate-slide-up pb-20">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
-                        <Icons.Brain className="w-8 h-8 text-indigo-600"/> ACIS Long-Term Memory
+                <div className="max-w-5xl mx-auto animate-slide-up pb-20">
+                    <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-4">
+                        <div className="p-2 bg-brand-primary rounded-lg shadow-glow"><Icons.Brain size={32} className="text-white"/></div>
+                        Neural Profile
                     </h2>
                     
-                    <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="font-bold text-slate-700 mb-4">Struggling Concepts (Persistent)</h3>
+                    <div className="grid md:grid-cols-2 gap-8 mb-8">
+                        <div className="glass-panel p-8 rounded-3xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                            <h3 className="font-bold text-slate-200 mb-6 text-xl">Retention Gaps</h3>
                             {weakList.length === 0 ? (
-                                <div className="text-center py-8 text-slate-400">No struggles recorded yet. Keep learning!</div>
+                                <div className="text-center py-12 text-slate-500 flex flex-col items-center">
+                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4"><Icons.Check size={32} className="text-emerald-500"/></div>
+                                    <p>Optimal retention observed.</p>
+                                </div>
                             ) : (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-3">
                                     {weakList.map((c, i) => (
-                                        <span key={i} className="px-3 py-1 bg-red-50 text-red-700 rounded-full border border-red-100 text-sm font-medium">
+                                        <span key={i} className="px-4 py-2 bg-rose-500/10 text-rose-200 rounded-xl border border-rose-500/20 text-sm font-semibold shadow-sm">
                                             {c}
                                         </span>
                                     ))}
                                 </div>
                             )}
-                            <p className="text-xs text-slate-400 mt-4">ACIS will prioritize these in future quizzes.</p>
+                            <p className="text-xs text-slate-500 mt-6 font-medium uppercase tracking-wider">ACIS will adapt future quizzes to target these.</p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <h3 className="font-bold text-slate-700 mb-4">Learning Velocity</h3>
-                            <div className="flex items-center justify-center h-32 text-slate-300">
-                                {/* Mock Chart Placeholder */}
-                                <div className="flex items-end gap-2 h-full">
-                                    <div className="w-4 bg-indigo-200 h-[30%] rounded-t"></div>
-                                    <div className="w-4 bg-indigo-300 h-[50%] rounded-t"></div>
-                                    <div className="w-4 bg-indigo-400 h-[40%] rounded-t"></div>
-                                    <div className="w-4 bg-indigo-500 h-[70%] rounded-t"></div>
-                                    <div className="w-4 bg-indigo-600 h-[90%] rounded-t"></div>
+                        {/* DYNAMIC LEARNING VELOCITY CHART */}
+                        <div className="glass-panel p-8 rounded-3xl">
+                            <h3 className="font-bold text-slate-200 mb-6 text-xl">Learning Velocity</h3>
+                            <p className="text-sm text-slate-400 mb-6">{velocityLabel}</p>
+                            <div className="flex items-end justify-center h-40 text-slate-600">
+                                <div className="flex items-end gap-3 h-full w-full justify-center px-4">
+                                    {velocityBars.map((bar, index) => (
+                                        <div 
+                                            key={index} 
+                                            className={`w-8 rounded-t-lg relative group transition-all duration-500 ease-out 
+                                                ${bar.isLatest ? 'bg-brand-accent shadow-[0_0_15px_rgba(56,189,248,0.5)]' : 'bg-brand-primary/60 hover:bg-brand-primary/80'}
+                                                ${bar.score === null && 'bg-white/10 opacity-50'}
+                                            `} 
+                                            style={{ height: ${bar.height}% }}
+                                        >
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold whitespace-nowrap">
+                                                {bar.isLatest && bar.score !== null ? Latest: ${bar.score}/10 : bar.score !== null ? ${bar.score}/10 : 'No Score'}
+                                            </div>
+                                            <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 text-xs text-slate-500 font-bold uppercase">
+                                                {bar.isLatest ? 'Latest' : S ${velocityBars.length - index}}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                            <p className="text-center text-xs text-slate-500 mt-2">Sessions over time</p>
                         </div>
                     </div>
                 </div>
@@ -917,26 +911,33 @@
         };
 
         const HistoryView = ({ history, onLoad }) => {
-            if (!history || history.length === 0) return <div className="flex flex-col items-center justify-center h-full text-slate-400"><Icons.History className="w-16 h-16 mb-4 opacity-50" /><p>No history available.</p></div>;
+            if (!history || history.length === 0) return <div className="flex flex-col items-center justify-center h-full text-slate-500"><Icons.History size={80} className="mb-6 opacity-20" /><p className="text-lg">No sessions recorded.</p></div>;
             return (
-                <div className="max-w-4xl mx-auto animate-slide-up">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-6">Session History</h2>
+                <div className="max-w-5xl mx-auto animate-slide-up">
+                    <h2 className="text-3xl font-bold text-white mb-8">Timeline</h2>
                     <div className="grid gap-4">
                         {history.map(item => (
-                            <div key={item.id} onClick={() => onLoad(item)} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer group">
+                            <div key={item.id} onClick={() => onLoad(item)} className="glass-panel p-6 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group border border-white/5 hover:border-brand-primary/30">
                                 <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-colors"><Icons.FileText className="w-6 h-6" /></div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all duration-300 shadow-inner group-hover:shadow-glow"><Icons.FileText size={28} /></div>
                                         <div>
-                                            <h3 className="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">Study Session</h3>
-                                            <p className="text-sm text-slate-500">{item.date} • {item.time}</p>
+                                            <h3 className="font-bold text-lg text-slate-200 group-hover:text-white transition-colors">Lecture Analysis</h3>
+                                            <p className="text-sm text-slate-500 font-mono mt-1">{item.date} • {item.time}</p>
                                         </div>
                                     </div>
-                                    <Icons.ChevronRight className="text-slate-300 group-hover:text-indigo-400" />
+                                    <div className="p-2 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors">
+                                        <Icons.ChevronRight size={20} className="text-slate-400 group-hover:text-white" />
+                                    </div>
                                 </div>
-                                <div className="mt-4 pl-16">
-                                    <p className="text-slate-600 text-sm line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100 font-mono">"{item.preview}"</p>
-                                    {item.teacherScore && <div className="mt-2 text-xs font-semibold text-indigo-600">Clarity Score: {item.teacherScore.score}/10</div>}
+                                <div className="mt-6 pl-20">
+                                    <p className="text-slate-400 text-sm line-clamp-2 bg-black/20 p-3 rounded-xl border border-white/5 font-mono leading-relaxed">"{item.preview}"</p>
+                                    {item.teacherScore && (
+                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-brand-primary/10 rounded-full border border-brand-primary/20">
+                                            <Icons.Sparkles size={12} className="text-brand-primary"/>
+                                            <span className="text-xs font-bold text-brand-primary">Quality Score: {item.teacherScore.score}/10</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
